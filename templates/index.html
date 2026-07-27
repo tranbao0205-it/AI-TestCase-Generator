@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Test Case Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon"><i class="fas fa-robot"></i></div>
+      <div class="logo-text">
+        <span class="logo-title">AI TestCase</span>
+        <span class="logo-sub">Generator</span>
+      </div>
+    </div>
+    <button class="btn-new-chat" onclick="newConversation()">
+      <i class="fas fa-plus"></i> New Chat
+    </button>
+  </div>
+  <div class="sidebar-body">
+    <div class="sb-section">
+      <div class="sb-label"><i class="fas fa-clock-rotate-left"></i> Lịch sử trò chuyện</div>
+      <div class="sb-search-wrap">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="convSearchInput" class="sb-search-input"
+               placeholder="Tìm cuộc trò chuyện…" oninput="filterConversations()" />
+      </div>
+      <div id="conversationList"><div class="sb-empty">Chưa có lịch sử</div></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label"><i class="fas fa-file-excel"></i> File Excel đã tạo</div>
+      <div id="fileList"><div class="sb-empty">Chưa có file nào</div></div>
+    </div>
+  </div>
+  <div class="sidebar-footer">v1.0.0 &bull; Powered by Bảo</div>
+</aside>
+
+<div class="main-wrap">
+
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-menu" onclick="toggleSidebar()" title="Toggle sidebar">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div>
+        <h1 class="header-title">AI Test Case Generator</h1>
+        <p class="header-sub">Tự động sinh test case cho website</p>
+      </div>
+    </div>
+    <div class="api-status" id="apiStatus">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Đang kiểm tra…</span>
+    </div>
+  </header>
+
+  <div class="chat-area" id="chatArea">
+    <div class="welcome" id="welcomeScreen">
+      <div class="welcome-icon"><i class="fas fa-robot"></i></div>
+      <h2>Chào mừng đến với AI Test Case Generator</h2>
+      <p>Mô tả website và tôi sẽ tự động sinh bộ test case chi tiết</p>
+
+      <div class="section-label">Gợi ý nhanh</div>
+      <div class="examples">
+        <div class="example-card" onclick="useExample(this)">
+          <div class="example-icon domain-school"><i class="fas fa-graduation-cap"></i></div>
+          <span>Website quản lý trường học: đăng nhập, quản lý sinh viên, lớp học, môn học, điểm</span>
+        </div>
+        <div class="example-card" onclick="useExample(this)">
+          <div class="example-icon domain-hospital"><i class="fas fa-hospital"></i></div>
+          <span>Website quản lý bệnh viện: quản lý bệnh nhân, lịch khám, thanh toán</span>
+        </div>
+        <div class="example-card" onclick="useExample(this)">
+          <div class="example-icon domain-bank"><i class="fas fa-building-columns"></i></div>
+          <span>Website quản lý ngân hàng: đăng nhập, chuyển khoản, lịch sử giao dịch, báo cáo.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-panel" id="previewPanel" style="display:none">
+    <div class="preview-header">
+      <h3><i class="fas fa-table"></i> Preview Test Cases</h3>
+      <div class="preview-btns">
+        <button class="btn-excel-gen" id="btnSaveEdits" onclick="saveTestCaseEdits()" style="background:rgba(255,255,255,.1)">
+          <i class="fas fa-floppy-disk"></i> Lưu thay đổi
+        </button>
+        <button class="btn-excel-gen" id="btnGenExcel" onclick="generateExcel()">
+          <i class="fas fa-file-excel"></i> Tạo file Excel
+        </button>
+        <button class="btn-icon-sm" onclick="closePreview()" title="Đóng">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="preview-body" id="previewBody"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-box" id="inputBox">
+
+      <div class="upload-banner" id="uploadBanner" style="display:none">
+        <img id="uploadBannerThumb" class="upload-banner-thumb" src="" alt="" style="display:none" />
+        <i class="fas fa-file-alt" id="uploadBannerIcon"></i>
+        <span id="uploadFilename">file.txt</span>
+        <button onclick="clearUpload()" class="btn-remove"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="input-row">
+        <label class="btn-attach" for="fileInput"
+               title="Upload tài liệu hoặc ảnh (.txt, .docx, .pdf, .md, .xlsx, .jpg, .png, .webp)">
+          <i class="fas fa-paperclip"></i>
+          <input type="file" id="fileInput"
+                 accept=".txt,.docx,.pdf,.md,.xlsx,.xlsm,.xls,.jpg,.jpeg,.png,.gif,.webp"
+                 style="display:none" onchange="handleUpload(event)" />
+        </label>
+
+        <label class="btn-attach" for="cameraInput" title="Chụp ảnh trực tiếp gửi cho AI">
+          <i class="fas fa-camera"></i>
+          <input type="file" id="cameraInput"
+                 accept="image/*" capture="environment"
+                 style="display:none" onchange="handleUpload(event)" />
+        </label>
+
+        <textarea id="msgInput"
+                  class="msg-input"
+                  placeholder="Nhập mô tả website, chức năng, role người dùng hoặc tải ảnh giao diện…"
+                  rows="1"
+                  onkeydown="handleKey(event)"
+                  oninput="onInputChange(this)"></textarea>
+
+        <button class="btn-send" id="btnSend" onclick="sendMsg()" title="Gửi">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+
+      <div class="input-footer">
+        <span class="footer-hint">
+          <i class="fas fa-circle-info"></i>
+          Hỗ trợ: .txt, .docx, .pdf, .xlsx, .jpg, .png, .webp
+        </span>
+        <span id="charCount" class="char-count">0 ký tự</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+  <div class="loading-card">
+    <div class="spinner-wrap">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <i class="fas fa-robot ring-icon"></i>
+    </div>
+    <h3>AI đang phân tích…</h3>
+    <p id="loadingMsg">Vui lòng chờ trong giây lát</p>
+    <div class="steps">
+      <div class="step active" id="st1"><i class="fas fa-circle"></i> Phân tích yêu cầu</div>
+      <div class="step" id="st2"><i class="fas fa-circle"></i> Sinh test case</div>
+      <div class="step" id="st3"><i class="fas fa-circle"></i> Phân nhóm chức năng</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="modalWrap" style="display:none">
+  <div class="modal-bg" onclick="closeModal()"></div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3><i class="fas fa-file-excel"></i> Xuất file Excel</h3>
+      <button class="btn-icon-sm" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <label for="projName">Tên dự án</label>
+      <input type="text" id="projName" class="modal-input" placeholder="Nhập tên dự án…" value="My Project" />
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">Hủy</button>
+      <button class="btn-confirm" onclick="doGenerateExcel()">
+        <i class="fas fa-file-excel"></i> Tạo Excel
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="uploadContextModal" style="display:none">
+  <div class="modal-bg" onclick="closeUploadContextModal()"></div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3><i class="fas fa-clock-rotate-left"></i> <span id="uploadCtxTitle">Gửi tin nhắn mới</span></h3>
+      <button class="btn-icon-sm" onclick="closeUploadContextModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Cuộc trò chuyện này đã có test case. Hãy nhập lựa chọn:</p>
+      <div style="margin-top:12px;line-height:1.8">
+        <div><strong>1 — Bắt đầu mới</strong>: bỏ testcase và ngữ cảnh cũ.</div>
+        <div><strong>2 — Tiếp tục workflow</strong>: nối yêu cầu mới với luồng hiện tại.</div>
+        <div><strong>3 — Gộp testcase</strong>: sinh phần mới độc lập rồi gộp kết quả.</div>
+      </div>
+      <label for="contextChoiceInput" style="display:block;margin-top:14px;font-weight:600">Nhập 1, 2 hoặc 3</label>
+      <input id="contextChoiceInput" class="modal-input" type="text" inputmode="numeric"
+             maxlength="1" autocomplete="off" placeholder="Ví dụ: 1"
+             onkeydown="handleContextChoiceKey(event)" />
+      <div id="contextChoiceError" style="display:none;margin-top:8px;color:#DC2626;font-size:13px">
+        Vui lòng chỉ nhập 1, 2 hoặc 3.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeUploadContextModal()">Hủy</button>
+      <button class="btn-confirm" onclick="confirmContextChoice()">
+        <i class="fas fa-check"></i> Xác nhận
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="diffProjectModal" style="display:none">
+  <div class="modal-bg" onclick="closeDiffProjectModal()"></div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3><i class="fas fa-triangle-exclamation"></i> <span id="diffProjectTitle">Bạn đang gửi ảnh của website khác.</span></h3>
+      <button class="btn-icon-sm" onclick="closeDiffProjectModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Bạn muốn:</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="diffProjectChooseNew()">
+        <i class="fas fa-circle-dot"></i> Tạo project mới
+      </button>
+      <button class="btn-confirm" onclick="diffProjectChooseMerge()">
+        <i class="fas fa-circle-dot"></i> Vẫn gộp vào project hiện tại
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="imgMismatchModal" style="display:none">
+  <div class="modal-bg" onclick="imgMismatchChooseAnother()"></div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3><i class="fas fa-triangle-exclamation"></i> Ảnh có vẻ không khớp dự án hiện tại</h3>
+      <button class="btn-icon-sm" onclick="imgMismatchChooseAnother()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Dự án hiện tại: <strong id="imgMismatchProject"></strong></p>
+      <p>Tên file ảnh: <strong id="imgMismatchFilename"></strong></p>
+      <p style="margin-top:8px">Bạn có chắc muốn sử dụng ảnh này không?</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="imgMismatchChooseAnother()">
+        <i class="fas fa-image"></i> Chọn ảnh khác
+      </button>
+      <button class="btn-confirm" onclick="imgMismatchUseAnyway()">
+        <i class="fas fa-check"></i> Tiếp tục sử dụng
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-wrap" id="testCaseModal" style="display:none">
+  <div class="modal-bg" onclick="closeTestCaseModal()"></div>
+  <div class="modal-box testcase-modal-box">
+    <div class="modal-head">
+      <div>
+        <h3><i class="fas fa-pen-to-square"></i> <span id="testCaseModalTitle">Chỉnh sửa Test Case</span></h3>
+        <p class="modal-subtitle" id="testCaseModalModeHint"></p>
+      </div>
+      <button class="btn-icon-sm" onclick="closeTestCaseModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body testcase-modal-body">
+      <div id="testCaseFormError" class="form-error" style="display:none"></div>
+      <div class="testcase-form-grid">
+        <div class="tc-form-group"><label for="tcForm_id">Mã TC <span>*</span></label><input id="tcForm_id" class="modal-input" type="text"></div>
+        <div class="tc-form-group"><label for="tcForm_module">Chức năng <span>*</span></label><input id="tcForm_module" class="modal-input" type="text"></div>
+        <div class="tc-form-group"><label for="tcForm_feature">Feature</label><input id="tcForm_feature" class="modal-input" type="text" readonly></div>
+        <div class="tc-form-group"><label for="tcForm_title">Tiêu đề</label><input id="tcForm_title" class="modal-input" type="text"></div>
+        <div class="tc-form-group full-width"><label for="tcForm_scenario">Tình huống <span>*</span></label><textarea id="tcForm_scenario" class="modal-input tc-textarea"></textarea></div>
+        <div class="tc-form-group full-width"><label for="tcForm_description">Mô tả</label><textarea id="tcForm_description" class="modal-input tc-textarea"></textarea></div>
+        <div class="tc-form-group full-width"><label for="tcForm_precondition">Điều kiện tiên quyết</label><textarea id="tcForm_precondition" class="modal-input tc-textarea"></textarea></div>
+        <div class="tc-form-group"><label for="tcForm_given">Given</label><textarea id="tcForm_given" class="modal-input tc-textarea small"></textarea></div>
+        <div class="tc-form-group"><label for="tcForm_when">When</label><textarea id="tcForm_when" class="modal-input tc-textarea small"></textarea></div>
+        <div class="tc-form-group full-width"><label for="tcForm_then">Then</label><textarea id="tcForm_then" class="modal-input tc-textarea small"></textarea></div>
+        <div class="tc-form-group full-width"><label for="tcForm_steps">Các bước thực hiện <span>*</span></label><textarea id="tcForm_steps" class="modal-input tc-textarea large" placeholder="1. ...&#10;2. ...&#10;3. ..."></textarea></div>
+        <div class="tc-form-group full-width"><label for="tcForm_test_data">Dữ liệu kiểm thử</label><textarea id="tcForm_test_data" class="modal-input tc-textarea"></textarea></div>
+        <div class="tc-form-group full-width"><label for="tcForm_expected_result">Kết quả mong đợi <span>*</span></label><textarea id="tcForm_expected_result" class="modal-input tc-textarea"></textarea></div>
+        <div class="tc-form-group"><label for="tcForm_priority">Ưu tiên</label><select id="tcForm_priority" class="modal-input"><option>Cao</option><option>Trung bình</option><option>Thấp</option></select></div>
+        <div class="tc-form-group"><label for="tcForm_test_type">Loại test</label><select id="tcForm_test_type" class="modal-input"><option>Kiểm thử chức năng</option><option>Kiểm thử dương</option><option>Kiểm thử âm</option><option>Kiểm thử xác thực</option><option>Kiểm thử biên</option><option>Kiểm thử giao diện</option><option>Kiểm thử phân quyền</option><option>Kiểm thử bảo mật</option><option>Kiểm thử tích hợp</option></select></div>
+        <div class="tc-form-group"><label for="tcForm_status">Trạng thái</label><select id="tcForm_status" class="modal-input"><option>Chưa chạy</option><option>Đạt</option><option>Không đạt</option><option>Chờ xử lý</option></select></div>
+        <div class="tc-form-group"><label for="tcForm_actual_result">Kết quả thực tế</label><textarea id="tcForm_actual_result" class="modal-input tc-textarea small"></textarea></div>
+        <div class="tc-form-group full-width"><label for="tcForm_note">Ghi chú</label><textarea id="tcForm_note" class="modal-input tc-textarea"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeTestCaseModal()">Hủy</button>
+      <button class="btn-confirm" onclick="saveTestCaseModal()"><i class="fas fa-floppy-disk"></i> Lưu Test Case</button>
+      <button class="btn-confirm" id="btnSaveAndRegenerate" onclick="saveTestCaseModal(true)">
+        <i class="fas fa-rotate"></i> Lưu &amp; Sinh lại
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="regenerateScopeModal" style="display:none">
+  <div class="modal-bg" onclick="closeRegenerateScopeModal()"></div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3><i class="fas fa-rotate"></i> Sinh lại Test Case</h3>
+      <button class="btn-icon-sm" onclick="closeRegenerateScopeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>AI sẽ sử dụng testcase bạn vừa chỉnh sửa làm dữ liệu đầu vào.</p>
+      <p>Bạn muốn AI sinh lại phạm vi nào?</p>
+      <div style="margin-top:12px;line-height:2">
+        <label style="display:block;cursor:pointer">
+          <input type="radio" name="regenScope" id="regenScopeSingle" value="single_testcase" checked>
+          Chỉ testcase này
+        </label>
+        <label style="display:block;cursor:pointer">
+          <input type="radio" name="regenScope" id="regenScopeFunction" value="entire_function">
+          Toàn bộ chức năng này
+        </label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="btnRegenCancel" onclick="closeRegenerateScopeModal()">Hủy</button>
+      <button class="btn-confirm" id="btnRegenConfirm" onclick="confirmRegenerate()">
+        <i class="fas fa-rotate"></i> Sinh lại
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="deleteTcConfirmModal" style="display:none">
+  <div class="modal-bg" onclick="closeDeleteTcConfirm()"></div>
+  <div class="modal-box">
+    <div class="modal-head modal-head-danger">
+      <h3><i class="fas fa-trash"></i> Xóa Test Case</h3>
+      <button class="btn-icon-sm" onclick="closeDeleteTcConfirm()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Bạn có chắc chắn muốn xóa Test Case này không?</p><p id="deleteTcLabel" class="delete-tc-label"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="btnCancelDeleteTc" onclick="closeDeleteTcConfirm()">Hủy</button>
+      <button class="btn-confirm btn-confirm-danger" id="btnConfirmDeleteTc" onclick="confirmDeleteTc()">
+        <i class="fas fa-trash"></i> Xóa
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toastBox"></div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

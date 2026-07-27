@@ -1,0 +1,69 @@
+GỢI Ý CHỈNH SỬA GIAO DIỆN AI TEST CASE GENERATOR
+
+1. Khu vực màn hình chính
+- Nên giảm khoảng trống ở giữa màn hình, phần nội dung đang hơi trống.
+- Có thể thêm 3 thẻ chức năng nhanh: Sinh test case từ mô tả, Sinh test case từ ảnh, Xuất Excel.
+- Dòng mô tả “Mô tả website...” nên viết rõ hơn: “Nhập mô tả website, chức năng hoặc tải ảnh giao diện để AI sinh test case.”
+
+2. Logo và tiêu đề
+- Logo đang đẹp, nhưng hơi lớn so với phần nội dung.
+- Có thể giảm nhẹ kích thước icon giữa màn hình hoặc thêm hiệu ứng shadow nhẹ hơn.
+- Tiêu đề “AI Test Case Generator” nên nổi bật hơn bằng font đậm và khoảng cách dòng hợp lý.
+
+3. Gợi ý mẫu
+- Ba ô gợi ý hiện tại ổn, nhưng nên thêm tiêu đề nhỏ: “Gợi ý nhanh”.
+- Nên làm các ô gợi ý thành card có hover rõ hơn.
+- Có thể thêm icon theo domain:
+  + Trường học: 🎓
+  + Bệnh viện: 🏥
+  + Ngân hàng: 🏦
+
+4. Sidebar lịch sử
+- Sidebar hơi nhiều item giống nhau như “Dự án”, nên tên lịch sử cần rõ hơn.
+- Nên hiển thị theo dạng:
+  [Tên dự án] - [Số testcase]
+  Ví dụ: Quản lý trường học - 45 TC
+- Có thể thêm nút tìm kiếm lịch sử.
+- Có thể nhóm lịch sử theo ngày: Hôm nay, Hôm qua, Tuần này.
+
+5. Ô nhập chat
+- Ô nhập đang đẹp, nhưng nên làm nổi bật nút gửi hơn một chút.
+- Placeholder nên đổi thành:
+  “Nhập mô tả website, chức năng, role người dùng hoặc tải ảnh giao diện...”
+- Dòng hỗ trợ file nên đặt rõ hơn:
+  “Hỗ trợ: .txt, .docx, .pdf, .xlsx, .jpg, .png, .webp”
+
+6. Trạng thái Online
+- Badge Online đang ổn.
+- Có thể thêm trạng thái model/API:
+  “Online • GPT ready” hoặc “API connected”.
+
+7. Màu sắc
+- Màu tím chủ đạo đẹp và hợp AI.
+- Tuy nhiên nền chính hơi trống, có thể thêm gradient rất nhẹ.
+- Sidebar nên giảm độ tối một chút hoặc tăng contrast chữ để dễ đọc hơn.
+
+8. Bố cục nên bổ sung
+- Thêm khu vực “Quy trình hoạt động” gồm 4 bước:
+  1. Nhập mô tả hoặc tải ảnh
+  2. AI phân tích chức năng
+  3. Sinh test case
+  4. Xuất Excel
+
+9. Chức năng nên có trên giao diện
+- Nút “Tạo dự án mới”.
+- Nút “Reset ngữ cảnh”.
+- Nút “Tiếp tục dự án hiện tại”.
+- Hiển thị tổng số testcase sau khi sinh.
+- Hiển thị coverage report sau khi sinh.
+- Cho phép chỉnh sửa testcase trước khi xuất Excel.
+
+10. Ưu tiên chỉnh sửa trước
+1. Đổi lịch sử từ “Dự án” thành tên dự án rõ ràng.
+2. Thêm tiêu đề “Gợi ý nhanh” cho 3 mẫu.
+3. Thêm quy trình 4 bước ở màn hình chính.
+4. Thêm nút Reset context / Tạo dự án mới.
+5. Làm đẹp card gợi ý bằng hover, icon và shadow nhẹ.
+
+KẾT LUẬN
+Giao diện hiện tại đã khá sạch và hiện đại. Điểm cần cải thiện lớn nhất là phần màn hình chính còn trống, lịch sử chưa rõ tên, và thiếu các khu vực thể hiện quy trình AI sinh test case. Nếu bổ sung quy trình, coverage report, reset context và tên lịch sử rõ ràng thì giao diện sẽ chuyên nghiệp hơn nhiều.
