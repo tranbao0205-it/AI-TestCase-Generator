@@ -36,81 +36,56 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 ---
 ## Kiến trúc hệ thống
 
+## Kiến trúc hệ thống
+
 ```mermaid
-flowchart TB
+flowchart LR
 
-%% ===========================
-%% FRONTEND
-%% ===========================
-subgraph FRONTEND["Frontend"]
-    A["🌐 Web Interface"]
-end
+    %% ===== INPUT =====
+    A["👤 Người dùng"] --> B["🌐 Giao diện Web"]
 
-%% ===========================
-%% BACKEND
-%% ===========================
-subgraph BACKEND["Flask Backend"]
-    B["app.py"]
-    C["Workflow Service"]
-    D["FileReader Service"]
-    E["History Service"]
+    %% ===== BACKEND =====
+    B -->|REST API| C["⚙️ Flask Backend"]
 
-    B --> C
-    B --> D
-    B --> E
-end
+    C --> D["🔄 Workflow Service"]
+    C --> E["📄 FileReader Service"]
+    C --> F["🕘 History Service"]
 
-%% ===========================
-%% AI ENGINE
-%% ===========================
-subgraph AI["AI Engine"]
-    F["Vision AI"]
-    G["Rule Engine"]
-    H["Scenario Engine"]
-    I["RAG Knowledge Base"]
-    J["OpenAI GPT-4o"]
+    %% ===== AI PROCESSING =====
+    D --> G["👁️ Vision AI"]
+    D --> H["📚 RAG Knowledge"]
+    D --> I["🤖 GPT-4o"]
 
-    F --- G
-    G --- H
-    H --- I
-    I --- J
-end
+    G --> J["⚖️ Rule Engine"]
+    H --> J
+    I --> J
 
-%% ===========================
-%% OUTPUT
-%% ===========================
-subgraph OUTPUT["Coverage & Reporting"]
-    K["Coverage Checker"]
-    L["Excel Service"]
-end
+    J --> K["🧩 Scenario Engine"]
 
-%% ===========================
-%% STORAGE
-%% ===========================
-subgraph STORAGE["Storage"]
-    M[("SQLite Database")]
-    N[("Excel Output (.xlsx)")]
-end
+    %% ===== OUTPUT =====
+    K --> L["✅ Coverage Checker"]
+    K --> M["📊 Excel Service"]
 
-%% ===========================
-%% FLOW
-%% ===========================
-A -->|"REST API"| B
+    %% ===== STORAGE =====
+    F --> N[("🗄️ SQLite Database")]
+    M --> O[("📁 Excel Output")]
 
-C --> F
-C --> G
-C --> H
-C --> I
-C --> J
+    %% ===== RETURN =====
+    N -->|Lịch sử| B
+    O -->|Tải file .xlsx| B
 
-C --> K
-C --> L
+    %% ===== STYLE =====
+    classDef frontend fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#111827;
+    classDef backend fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111827;
+    classDef ai fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#111827;
+    classDef output fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111827;
+    classDef storage fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111827;
 
-E --> M
-L --> N
-
-N -->|"Download"| A
-M -->|"History"| A
+    class A,B frontend;
+    class C,D,E,F backend;
+    class G,H,I,J,K ai;
+    class L,M output;
+    class N,O storage;
 ```
 ---
 ## Quy trình xử lý dữ liệu
