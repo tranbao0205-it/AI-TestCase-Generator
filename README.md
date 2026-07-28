@@ -37,29 +37,80 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 ## Kiến trúc hệ thống
 
 ```mermaid
-graph TD
-    A[Người dùng / Frontend Web] -->|HTTP / REST API| B[Flask Backend Server]
-    
-    subgraph "Core Backend Services"
-        B --> C[Workflow Service]
-        B --> D[FileReader Service]
-        B --> E[History Service / SQLite DB]
-    end
+flowchart TB
 
-    subgraph "AI & Intelligence Layer"
-        C --> F[Rule Engine & Scenario Rules]
-        C --> G[RAG Knowledge Service]
-        C --> H[Vision AI Service]
-        C --> I[OpenAI GPT-4o Service]
-    end
+%% ===========================
+%% FRONTEND
+%% ===========================
+subgraph FRONTEND["Frontend"]
+    A["🌐 Web Interface"]
+end
 
-    subgraph "Output & Reporting"
-        C --> J[Coverage Checker]
-        C --> K[Excel Service openpyxl]
-    end
+%% ===========================
+%% BACKEND
+%% ===========================
+subgraph BACKEND["Flask Backend"]
+    B["app.py"]
+    C["Workflow Service"]
+    D["FileReader Service"]
+    E["History Service"]
 
-    K -->|File .xlsx| A
-    E -->|Lưu vết / Xem lại| A
+    B --> C
+    B --> D
+    B --> E
+end
+
+%% ===========================
+%% AI ENGINE
+%% ===========================
+subgraph AI["AI Engine"]
+    F["Vision AI"]
+    G["Rule Engine"]
+    H["Scenario Engine"]
+    I["RAG Knowledge Base"]
+    J["OpenAI GPT-4o"]
+
+    F --- G
+    G --- H
+    H --- I
+    I --- J
+end
+
+%% ===========================
+%% OUTPUT
+%% ===========================
+subgraph OUTPUT["Coverage & Reporting"]
+    K["Coverage Checker"]
+    L["Excel Service"]
+end
+
+%% ===========================
+%% STORAGE
+%% ===========================
+subgraph STORAGE["Storage"]
+    M[("SQLite Database")]
+    N[("Excel Output (.xlsx)")]
+end
+
+%% ===========================
+%% FLOW
+%% ===========================
+A -->|"REST API"| B
+
+C --> F
+C --> G
+C --> H
+C --> I
+C --> J
+
+C --> K
+C --> L
+
+E --> M
+L --> N
+
+N -->|"Download"| A
+M -->|"History"| A
 ```
 ---
 ## Quy trình xử lý dữ liệu
