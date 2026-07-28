@@ -1,206 +1,191 @@
 # AI Test Case Generator
+![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![Framework](https://img.shields.io/badge/framework-Flask--3.0.3-green.svg)
+![AI Powered](https://img.shields.io/badge/AI-OpenAI%20GPT--4o-orange.svg)
+![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
 
-AI Test Case Generator là một hệ thống hỗ trợ sinh Test Case tự động cho các ứng dụng Web từ mô tả nghiệp vụ, tài liệu đặc tả hoặc giao diện người dùng. Mục tiêu của dự án là giảm thời gian xây dựng bộ Test Case, đồng thời đảm bảo các trường hợp kiểm thử được tạo ra có tính nhất quán và bám sát nghiệp vụ.
+**AI Test Case Generator** là một hệ thống thông minh hỗ trợ tự động hóa việc tạo lập bộ Test Case chuẩn hóa cho các ứng dụng Web từ nhiều nguồn đầu vào khác nhau: **mô tả nghiệp vụ bằng văn bản**, **tài liệu đặc tả (BRD/SRS)**, hoặc **hình ảnh giao diện người dùng (UI Screenshots/Wireframes)**.
 
-Khác với cách chỉ gửi một prompt trực tiếp đến mô hình AI, hệ thống xây dựng thêm tầng Rule Engine và Workflow xử lý nhiều bước để chuẩn hóa dữ liệu đầu vào, xác định chức năng cần kiểm thử, tổ chức Test Case theo nhóm và kiểm tra độ bao phủ trước khi xuất kết quả.
-
-Người dùng có thể xem trước, chỉnh sửa, sinh lại Test Case và xuất toàn bộ kết quả ra file Excel phục vụ quá trình kiểm thử.
-
----
-
-## Chức năng chính
-
-- Sinh Test Case từ mô tả nghiệp vụ.
-- Sinh Test Case từ tài liệu đặc tả (TXT, DOCX, PDF, Markdown).
-- Sinh Test Case từ hình ảnh giao diện.
-- Phân nhóm Test Case theo chức năng.
-- Chỉnh sửa trực tiếp trước khi xuất.
-- Sinh lại một Test Case hoặc toàn bộ chức năng.
-- Xuất kết quả ra file Excel nhiều Sheet.
-- Lưu lịch sử làm việc và quản lý các file đã tạo.
+Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (Retrieval-Augmented Generation)**, và **Vision AI** nhằm nâng cao tính chính xác, tính đồng nhất và độ bao phủ kiểm thử (Test Coverage) trước khi xuất kết quả thành file Excel báo cáo hoàn chỉnh.
 
 ---
 
-## Kiến trúc hệ thống
+ Tính năng chính
+- Sinh Test Case từ mô tả nghiệp vụ (Text Prompt)
+- Phân tích các đoạn mô tả tự do, tự động bóc tách các chức năng chính/phụ và sinh kịch bản kiểm thử tương ứng.
+- Sinh Test Case từ Tài liệu đặc tả (Specification Documents)**:
+- Hỗ trợ định dạng: `.txt`, `.docx`, `.pdf`, `.md`.
+- Tự động trích xuất nội dung và xây dựng ma trận Test Case cho toàn bộ tài liệu.
+- Sinh Test Case từ Hình ảnh Giao diện (Vision AI)**:
+- Hỗ trợ định dạng: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`.
+- Tự động nhận diện các thành phần UI (Form, Button, Input, Dropdown, Validation error...) để đề xuất Test Case tương ứng.
+- Tích hợp Rule Engine & Scenario Rules**:
+- Áp dụng các quy tắc kiểm thử tiêu chuẩn (Boundary Value, Equivalence Partitioning, Negative Testing, Security Basic).
+- Tích hợp RAG (Retrieval-Augmented Generation)**:
+- Tra cứu tri thức kiểm thử từ Knowledge Base để bổ sung kịch bản chi tiết.
+- Kiểm tra & Báo cáo độ bao phủ (Coverage Report)**:
+- Đánh giá mức độ hoàn thiện của các kịch bản và báo cáo tỷ lệ bao phủ theo chức năng.
+- Chỉnh sửa & Sinh lại linh hoạt (Interactive Workspace)**:
+- Cho phép chỉnh sửa tiêu đề, các bước thực hiện, kết quả mong đợi trực tiếp trên giao diện Web.
+- Hỗ trợ sinh lại (Re-generate) cho từng Test Case đơn lẻ hoặc toàn bộ một nhóm chức năng.
+- Xuất Excel chuyên nghiệp:
+- Tự động đóng gói kết quả ra file `.xlsx` nhiều Sheet (Tổng quan, Chi tiết theo chức năng) được căn chỉnh giao diện chuẩn hóa.
+- Quản lý Lịch sử (History Management)**:
+- Lưu trữ toàn bộ các phiên sinh Test Case vào cơ sở dữ liệu SQLite, giúp tìm kiếm, mở lại và tải xuống báo cáo dễ dàng.
 
-Hệ thống được chia thành các thành phần độc lập để thuận tiện cho việc mở rộng và bảo trì.
+---
+ Kiến trúc hệ thống
+```mermaid
+graph TD
+    A[Người dùng / Frontend Web] -->|HTTP / REST API| B[Flask Backend Server]
+    
+    subgraph "Core Backend Services"
+        B --> C[Workflow Service]
+        B --> D[FileReader Service]
+        B --> E[History Service / SQLite DB]
+    end
 
+    subgraph "AI & Intelligence Layer"
+        C --> F[Rule Engine & Scenario Rules]
+        C --> G[RAG Knowledge Service]
+        C --> H[Vision AI Service]
+        C --> I[OpenAI GPT-4o Service]
+    end
+
+    subgraph "Output & Reporting"
+        C --> J[Coverage Checker]
+        C --> K[Excel Service openpyxl]
+    end
+
+    K -->|File .xlsx| A
+    E -->|Lưu vết / Xem lại| A
 ```
-Người dùng
-      │
-      ▼
-Frontend
-      │
-      ▼
-Flask API
-      │
-      ▼
-Workflow Service
-      │
- ┌────┴────┐
- ▼         ▼
-Rule      File
-Engine    Reader
-      │
-      ▼
-AI Service
-      │
-      ▼
-Normalize dữ liệu
-      │
-      ▼
-Preview Test Case
-      │
-      ▼
-Excel Service
-```
-
 ---
-
-## Quy trình xử lý
-
-1. Người dùng nhập mô tả hoặc tải tài liệu/giao diện.
-2. Hệ thống phân tích yêu cầu và xác định chức năng cần kiểm thử.
-3. Rule Engine bổ sung các quy tắc nghiệp vụ tương ứng.
-4. AI sinh Test Case theo từng chức năng.
-5. Kết quả được chuẩn hóa và gom nhóm.
-6. Người dùng xem trước và chỉnh sửa nếu cần.
-7. Có thể sinh lại một Test Case hoặc toàn bộ chức năng.
-8. Xuất kết quả thành file Excel.
-
+# Quy trình xử lý dữ liệu
+1. Nhận thông tin đầu vào**: Người dùng nhập văn bản, tải file tài liệu hoặc gửi ảnh giao diện.
+2. Trích xuất & Chuẩn hóa (Parsing)**: FileReader đọc dữ liệu thô từ PDF/DOCX/TXT/MD hoặc Vision AI phân tích ảnh UI.
+3. Áp dụng Quy tắc (Rule Engine & RAG)**: Xác định danh sách chức năng, bổ sung các rule kiểm thử đặc thù (Negative, Boundary, Edge cases).
+4. Sinh kịch bản bằng AI (LLM Generation)**: Gửi thông tin chuẩn hóa đến OpenAI API để sinh bộ Test Case theo định dạng JSON cấu trúc.
+5. Đánh giá độ bao phủ (Coverage Analysis)**: Phân tích ma trận kịch bản để kiểm tra độ phủ nghiệp vụ.
+6. Xem trước & Tương tác (Interactive Preview)**: Người dùng xem kết quả trên giao diện, chỉnh sửa hoặc yêu cầu sinh lại các kịch bản chưa đạt.
+7. Xuất Báo cáo Excel (Export)**: Đóng gói dữ liệu ra file `.xlsx` chuyên nghiệp.
 ---
-
 ## Công nghệ sử dụng
-
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Backend | Flask |
-| Frontend | HTML, CSS, JavaScript |
-| AI | OpenAI API |
-| Database | SQLite |
-| Excel | openpyxl |
-| File Reader | pdfplumber, python-docx, Markdown |
-| Ngôn ngữ | Python 3.10+ |
-
+| Thành phần | Công nghệ / Thư viện |
+| Backend Framework | Python 3.10+, Flask 3.0.3, Flask-CORS |
+| AI Models | OpenAI API (`gpt-4o-mini`, `gpt-4o`) |
+| Database | SQLite3 |
+| File Processing | `python-docx` (Word), `pypdf` (PDF), `openpyxl` (Excel) |
+| Frontend | HTML5, Modern CSS, Vanilla JavaScript, FontAwesome |
+| Environment | `python-dotenv`, `httpx` |
 ---
 
 ## Cấu trúc thư mục
-
 ```text
-project/
+deadlineAITaoTestCaseWebsite/
 │
-├── app.py
-├── services/
-│   ├── ai_service.py
-│   ├── workflow_service.py
-│   ├── rule_engine.py
-│   ├── scenario_rule_engine.py
-│   ├── excel_service.py
-│   ├── history_service.py
-│   └── file_reader.py
+├── app.py                     # Entry point Flask Application & REST API Endpoints
+├── requirements.txt           # Danh sách các thư viện phụ thuộc
+├── .env.example               # File mẫu cấu hình biến môi trường
+├── fix_titles (1).py          # Script tiện ích xử lý tiêu đề
 │
-├── database/
-├── static/
-├── templates/
-├── uploads/
-└── outputs/
+├── database/                  # Quản lý cơ sở dữ liệu SQLite
+│   └── database.py            # Khởi tạo DB & Schema lịch sử
+│
+├── services/                  # Các dịch vụ xử lý nghiệp vụ chính
+│   ├── ai_service.py          # Tương tác OpenAI API & Prompt Engineering
+│   ├── workflow_service.py    # Điều phối quy trình xử lý đa bước
+│   ├── rule_engine.py         # Quy tắc kiểm thử tổng quan
+│   ├── scenario_rule_engine.py# Quy tắc kiểm thử theo kịch bản chi tiết
+│   ├── rag_service.py         # Dịch vụ Retrieval-Augmented Generation
+│   ├── vision_service.py      # Phân tích hình ảnh UI với Vision AI
+│   ├── file_reader.py         # Trích xuất văn bản từ DOCX, PDF, TXT, MD
+│   ├── coverage_checker.py    # Phân tích & kiểm tra độ bao phủ Test Case
+│   ├── coverage_report.py     # Tạo báo cáo độ bao phủ
+│   ├── excel_service.py       # Xuất báo cáo định dạng Excel (.xlsx)
+│   └── history_service.py     # Quản lý lưu vết lịch sử trên SQLite DB
+│
+├── rag/                       # Cơ sở tri thức kiểm thử (Knowledge Base)
+│   └── knowledge/             # Tài liệu tri thức RAG
+│
+├── static/                    # Dynamic Static Files (CSS, JS, Images)
+├── templates/                 # HTML Templates (Giao diện Web)
+├── uploads/                   # Thư mục chứa các file người dùng tải lên
+├── outputs/                   # Thư mục chứa các file Excel xuất ra
+└── instance/                  # SQLite DB File (`history.db`)
 ```
-
 ---
 
-## Cài đặt
+## Hướng dẫn cài đặt & Khởi chạy
+1. Yêu cầu tiền đề (Prerequisites)
+- Python **3.10** hoặc cao hơn.
+- Tài khoản OpenAI và **API Key** khả dụng.
 
-### Tạo môi trường
-
+2. Cài đặt môi trường
 ```bash
-python -m venv venv
-```
+# 1. Clone repository (nếu chưa có)
+git clone <repository-url>
+cd deadlineAITaoTestCaseWebsite
 
-Windows
+# 2. Tạo môi trường ảo (Virtual Environment)
+python -m venv .venv
 
-```bash
-venv\Scripts\activate
-```
-
-Linux/macOS
-
-```bash
-source venv/bin/activate
-```
-
-### Cài đặt thư viện
-
-```bash
+# 3. Kích hoạt môi trường ảo
+# Trên Windows:
+.venv\Scripts\activate
+# Trên Linux/macOS:
+source .venv/bin/activate
+# 4. Cài đặt các thư viện cần thiết
 pip install -r requirements.txt
 ```
-
-### Cấu hình
-
-Tạo file `.env`
-
+3. Cấu hình biến môi trường (.env)
+Tạo file `.env` tại thư mục gốc của dự án (hoặc sao chép từ `.env.example`):
+```bash
+cp .env.example .env
+```
+Chỉnh sửa nội dung `.env`:
 ```env
-OPENAI_API_KEY=YOUR_API_KEY
-OPENAI_MODEL=YOUR_MODEL
-SECRET_KEY=YOUR_SECRET_KEY
+OPENAI_API_KEY=sk-your-openai-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+SECRET_KEY=your-custom-secret-key
 ```
 
-### Khởi động
-
+4. Khởi chạy ứng dụng
 ```bash
 python app.py
 ```
 
+Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
+**`http://127.0.0.1:5000`**
+
+ Danh sách API Chính (REST Endpoints)
+| Endpoint | Method | Mô tả |
+| `/` | `GET` | Trả về giao diện chính của ứng dụng |
+| `/api/chat` | `POST` | Sinh Test Case từ mô tả văn bản tự do |
+| `/api/upload-file` | `POST` | Tải lên & trích xuất file tài liệu (`.pdf`, `.docx`, `.txt`, `.md`) |
+| `/api/analyze-vision` | `POST` | Phân tích ảnh chụp màn hình UI và sinh Test Case |
+| `/api/regenerate-single` | `POST` | Sinh lại 1 Test Case cụ thể dựa trên góp ý |
+| `/api/regenerate-feature` | `POST` | Sinh lại toàn bộ Test Case của 1 nhóm chức năng |
+| `/api/generate-excel` | `POST` | Xuất bộ Test Case hiện tại ra file Excel (`.xlsx`) |
+| `/api/history` | `GET` | Lấy danh sách lịch sử các lần sinh Test Case |
+| `/api/history/<id>` | `GET` / `DELETE` | Xem chi tiết hoặc xóa một mục lịch sử |
+| `/download/<filename>` | `GET` | Tải xuống file Excel từ thư mục output |
 ---
 
-## Hướng dẫn sử dụng
-
-### Sinh Test Case từ mô tả
-
-Nhập yêu cầu nghiệp vụ vào khung chat, hệ thống sẽ tự động phân tích và sinh Test Case theo từng chức năng.
-
-### Sinh Test Case từ tài liệu
-
-Tải lên tài liệu đặc tả để AI đọc nội dung và tạo bộ Test Case tương ứng.
-
-### Sinh Test Case từ giao diện
-
-Tải ảnh giao diện để hệ thống nhận diện các thành phần và sinh Test Case cho từng chức năng.
-
-### Chỉnh sửa Test Case
-
-Có thể chỉnh sửa tiêu đề, tình huống, kết quả mong đợi và các thông tin khác trước khi xuất.
-
-### Sinh lại
-
-Hệ thống hỗ trợ:
-
-- Sinh lại Test Case đang chọn.
-- Sinh lại toàn bộ Test Case của một chức năng.
-
-### Xuất Excel
-
-Sau khi hoàn tất, người dùng có thể xuất bộ Test Case thành file Excel để phục vụ kiểm thử.
+ Hướng dẫn sử dụng chi tiết
+1. Sinh Test Case bằng văn bản**:
+   - Nhập mô tả chức năng vào ô chat (ví dụ: *"Tạo bộ test case cho chức năng Đăng ký tài khoản"*).
+   - Bấm **Gửi**, hệ thống sẽ phân tích và hiển thị danh sách Test Case tổ chức theo từng tính năng.
+2. Sinh Test Case bằng tài liệu**:
+   - Nhấn nút **Tải file tài liệu** và chọn file đặc tả yêu cầu (`.pdf`, `.docx`...).
+   - Nhấn **Phân tích**, hệ thống đọc nội dung tài liệu và tạo bộ Test Case tương ứng.
+3. Sinh Test Case bằng hình ảnh**:
+   - Tải lên hình ảnh giao diện Web/App.
+   - AI Vision sẽ quét và nhận diện các form, nút bấm, validation để sinh bộ test chuẩn.
+4. Chỉnh sửa & Xuất Báo cáo**:
+   - Nhấp trực tiếp vào ô nội dung bất kỳ trong bảng preview để chỉnh sửa.
+   - Nhấn nút **Xuất Excel** để tải về file Excel chuyên nghiệp.
 
 ---
-
-## Kết quả đầu ra
-
-File Excel bao gồm:
-
-- Thông tin dự án
-- Tổng hợp Test Case
-- Danh sách Test Case theo từng chức năng
-
----
-
-## Yêu cầu hệ thống
-
-- Python 3.10 trở lên
-- Kết nối Internet
-- OpenAI API Key hợp lệ
-
----
-
-## Giấy phép
-
-Dự án được phát triển phục vụ mục đích học tập và nghiên cứu.
+## Giấy phép (License) & Tác giả
+- Dự án được phát triển phục vụ mục đích nghiên cứu, học tập và hỗ trợ cộng đồng Tester/QA.
