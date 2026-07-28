@@ -34,52 +34,55 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 - Lưu trữ toàn bộ các phiên sinh Test Case vào cơ sở dữ liệu SQLite, giúp tìm kiếm, mở lại và tải xuống báo cáo dễ dàng.
 
 ---
- Kiến trúc hệ thống
+<div align="center">
+
 ```mermaid
-graph TD
-    A[Người dùng / Frontend Web] -->|HTTP / REST API| B[Flask Backend Server]
+flowchart TD
+    User[" Người Dùng (Giao Diện Web)"]
     
-    subgraph "Core Backend Services"
-        B --> C[Workflow Service]
-        B --> D[FileReader Service]
-        B --> E[History Service / SQLite DB]
+    subgraph Gateway [" API Gateway & Route Controller"]
+        Flask["  Flask Backend Server (app.py)"]
     end
 
-    subgraph "AI & Intelligence Layer"
-        C --> F[Rule Engine & Scenario Rules]
-        C --> G[RAG Knowledge Service]
-        C --> H[Vision AI Service]
-        C --> I[OpenAI GPT-4o Service]
+    subgraph Services ["  Core Processing Services"]
+        FileReader["  File Reader (PDF, DOCX, TXT, MD)"]
+        Workflow["  Workflow Service"]
+        History["  History Service"]
     end
 
-    subgraph "Output & Reporting"
-        C --> J[Coverage Checker]
-        C --> K[Excel Service openpyxl]
+    subgraph Intelligence ["  AI & Rule Engine Layer"]
+        RuleEngine["  Rule & Scenario Engine"]
+        RAG["  RAG Knowledge Base"]
+        VisionAI["  Vision AI Service"]
+        OpenAI["  OpenAI API (GPT-4o / GPT-4o-mini)"]
     end
 
-    K -->|File .xlsx| A
-    E -->|Lưu vết / Xem lại| A
+    subgraph Output ["  Output & Storage Layer"]
+        Coverage["  Coverage Checker"]
+        Excel["  Excel Service (openpyxl)"]
+        DB[("  SQLite Database")]
+    end
+
+    User -->|"1. Gửi yêu cầu (Văn bản / File / Ảnh UI)"| Flask
+    
+    Flask --> FileReader
+    Flask --> Workflow
+    Flask <--> History
+
+    FileReader --> Workflow
+    Workflow --> RuleEngine
+    Workflow --> RAG
+    Workflow --> VisionAI
+    Workflow --> OpenAI
+
+    Workflow --> Coverage
+    Workflow --> Excel
+    History <--> DB
+
+    Excel -->|"2. Tải về báo cáo Excel (.xlsx)"| User
 ```
----
-# Quy trình xử lý dữ liệu
-1. Nhận thông tin đầu vào**: Người dùng nhập văn bản, tải file tài liệu hoặc gửi ảnh giao diện.
-2. Trích xuất & Chuẩn hóa (Parsing)**: FileReader đọc dữ liệu thô từ PDF/DOCX/TXT/MD hoặc Vision AI phân tích ảnh UI.
-3. Áp dụng Quy tắc (Rule Engine & RAG)**: Xác định danh sách chức năng, bổ sung các rule kiểm thử đặc thù (Negative, Boundary, Edge cases).
-4. Sinh kịch bản bằng AI (LLM Generation)**: Gửi thông tin chuẩn hóa đến OpenAI API để sinh bộ Test Case theo định dạng JSON cấu trúc.
-5. Đánh giá độ bao phủ (Coverage Analysis)**: Phân tích ma trận kịch bản để kiểm tra độ phủ nghiệp vụ.
-6. Xem trước & Tương tác (Interactive Preview)**: Người dùng xem kết quả trên giao diện, chỉnh sửa hoặc yêu cầu sinh lại các kịch bản chưa đạt.
-7. Xuất Báo cáo Excel (Export)**: Đóng gói dữ liệu ra file `.xlsx` chuyên nghiệp.
----
-## Công nghệ sử dụng
-| Thành phần | Công nghệ / Thư viện |
-| Backend Framework | Python 3.10+, Flask 3.0.3, Flask-CORS |
-| AI Models | OpenAI API (`gpt-4o-mini`, `gpt-4o`) |
-| Database | SQLite3 |
-| File Processing | `python-docx` (Word), `pypdf` (PDF), `openpyxl` (Excel) |
-| Frontend | HTML5, Modern CSS, Vanilla JavaScript, FontAwesome |
-| Environment | `python-dotenv`, `httpx` |
----
 
+</div>
 ## Cấu trúc thư mục
 ```text
 deadlineAITaoTestCaseWebsite/
