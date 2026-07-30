@@ -91,6 +91,7 @@ try:
     from services.scenario_rule_engine import (
         replace_generated_cases_with_template as _sre_replace_generated_cases_with_template,
         normalize_function_name as _sre_normalize_function_name,
+        build_testcases_for_module as _sre_build_testcases_for_module,
         DEFAULT_ENFORCED_CANONICALS as _SRE_DEFAULT_ENFORCED_CANONICALS,
     )
     print("[ScenarioRuleEngine] Import từ 'services.scenario_rule_engine' thành công.")
@@ -99,6 +100,7 @@ except Exception as _exc_sre_services_pkg:
         from scenario_rule_engine import (
             replace_generated_cases_with_template as _sre_replace_generated_cases_with_template,
             normalize_function_name as _sre_normalize_function_name,
+            build_testcases_for_module as _sre_build_testcases_for_module,
             DEFAULT_ENFORCED_CANONICALS as _SRE_DEFAULT_ENFORCED_CANONICALS,
         )
         print("[ScenarioRuleEngine] Import từ 'scenario_rule_engine' (cùng cấp) thành công.")
@@ -113,6 +115,7 @@ except Exception as _exc_sre_services_pkg:
         )
         _sre_replace_generated_cases_with_template = None
         _sre_normalize_function_name = None
+        _sre_build_testcases_for_module = None
         _SRE_DEFAULT_ENFORCED_CANONICALS = frozenset()
 
 if _cc_is_search_module is None:
@@ -365,7 +368,8 @@ _SCHEMA = '{"project_name":"...","description":"...","modules":{"Tên chức nă
 _BASE_RULES = """- JSON object duy nhất. Tiếng Việt. modules là object {}.
 - id tăng liên tục TC_001→TC_002, KHÔNG reset. status="Chưa chạy". actual_result="". note="".
 - priority: Cao|Trung bình|Thấp. test_type chỉ được là một trong: Kiểm thử chức năng|Kiểm thử giao diện|Kiểm thử xác thực|Kiểm thử bảo mật|Kiểm thử phân quyền|Kiểm thử âm|Kiểm thử dương|Kiểm thử biên|Kiểm thử tích hợp
-Nút "Tìm" (button riêng biệt, KHÔNG phải ô input tìm kiếm) PHẢI đặt tên chức năng CHÍNH XÁC là "Tìm" — TUYỆT ĐỐI KHÔNG ghép thêm mô tả/placeholder của ô input "Tìm kiếm theo [X]" đứng gần đó vào tên (vd KHÔNG đặt "Tìm theo mã", "Tìm theo mã hoặc kho", "Tìm theo [X]" cho chức năng của NÚT Tìm — dù ô input tìm kiếm gần đó tên gì, chức năng của nút Tìm luôn CHỈ là "Tìm")."""
+Nút "Tìm" (button riêng biệt, KHÔNG phải ô input tìm kiếm) PHẢI đặt tên chức năng CHÍNH XÁC là "Tìm" — TUYỆT ĐỐI KHÔNG ghép thêm mô tả/placeholder của ô input "Tìm kiếm theo [X]" đứng gần đó vào tên (vd KHÔNG đặt "Tìm theo mã", "Tìm theo mã hoặc kho", "Tìm theo [X]" cho chức năng của NÚT Tìm — dù ô input tìm kiếm gần đó tên gì, chức năng của nút Tìm luôn CHỈ là "Tìm").
+Các nút hành động UI chung của form/popup — "Hủy"/"Huỷ"/"Hủy bỏ"/"Cancel", "Đóng popup", "Sinh mã", "Lưu", "Quay lại" — KHI người dùng yêu cầu/đặt tên CHÍNH XÁC đúng như vậy (không kèm thêm từ nào khác), PHẢI giữ NGUYÊN tên module ĐÚNG CHÍNH XÁC "Hủy"/"Đóng popup"/"Sinh mã"/"Lưu"/"Quay lại" — TUYỆT ĐỐI KHÔNG tự suy diễn hay ghép thêm tên đối tượng nghiệp vụ của dự án/màn hình hiện tại vào (vd yêu cầu chỉ nói "hủy" trong dự án "Quản lý lớp học" → module PHẢI là "Hủy", TUYỆT ĐỐI KHÔNG đặt "Hủy lớp học"; tương tự KHÔNG tự đặt "Hủy đơn hàng", "Hủy lịch hẹn", "Hủy tài khoản"... trừ khi người dùng đã tự gõ rõ ràng đầy đủ cụm đó chính là tên chức năng họ muốn). Nút Hủy/Cancel của 1 form/popup là hành động ĐÓNG FORM và KHÔNG LƯU thay đổi — KHÔNG phải hành động hủy/xóa đối tượng nghiệp vụ (lớp học/đơn hàng/lịch hẹn...), nên KHÔNG được sinh scenario dạng "hủy lớp học có sinh viên", "xóa lớp học", "dữ liệu tham chiếu của lớp học" cho module "Hủy" — chỉ mô tả hành vi đóng form/popup và có/không giữ dữ liệu."""
 _SCENARIO_EXPECTED = """=== MẪU scenario => expected_result (chuẩn WEB2519) ===
 Scenario: mô tả đầy đủ thao tác + dữ liệu/trường cụ thể liên quan, KHÔNG viết "Kiểm tra X hiển thị đúng".
 Expected: nêu rõ thông báo UI + trạng thái data sau thao tác, KHÔNG viết "X hiển thị đúng".
@@ -597,7 +601,21 @@ def _log_generation_runtime(func):
             )
             elapsed = time.perf_counter() - started_at
             modules = result.get("modules", {}) if isinstance(result, dict) else {}
-            total_modules = len(modules) if isinstance(modules, dict) else 0
+            # Đếm SỐ CHỨC NĂNG GỐC cho mục đích thống kê/log — "Đăng nhập
+            # thành công" và "Đăng nhập không thành công" phải tính là 1
+            # chức năng, không phải 2. Chỉ dùng base_name để ĐẾM, KHÔNG ghi
+            # đè lên result/tc (result giữ nguyên module key có hậu tố).
+            if isinstance(modules, dict) and modules:
+                _base_names_seen: set[str] = set()
+                for _mod_name in modules.keys():
+                    try:
+                        _base, _ = self._determine_base_business_function(_mod_name)
+                    except Exception:
+                        _base = _mod_name
+                    _base_names_seen.add((_base or _mod_name or '').strip())
+                total_modules = len(_base_names_seen)
+            else:
+                total_modules = 0
             total_testcases = (
                 sum(len(items) for items in modules.values() if isinstance(items, list))
                 if isinstance(modules, dict) else 0
@@ -1480,7 +1498,6 @@ class AIService:
               từ khóa tình huống nào trong _SITUATIONAL_QUALIFIER_KEYWORDS
               khớp "theo mã" nên giữ nguyên, đúng vì đây là biến thể field
               cụ thể của chức năng Tìm kiếm, không phải tình huống lỗi.
-
         KHÔNG hard-code tên chức năng cụ thể nào — chỉ dựa vào từ khóa tình
         huống tổng quát nên áp dụng được cho mọi chức năng.
         """
@@ -1532,7 +1549,6 @@ class AIService:
         lại (Validation/Boundary/Permission/Security/Business Rule/System/
         User Action/Exception) — kể cả khi không khớp tín hiệu nào, để
         không bao giờ xếp nhầm 1 TC mơ hồ vào nhóm thành công.
-
         KHÔNG dùng test_type (Kiểm thử biên/phân quyền/xác thực/bảo mật...)
         làm tín hiệu outcome — đã thử và bị bác bỏ bằng dữ liệu thật: TC_002
         "Đăng nhập bằng tài khoản Admin" có test_type "Kiểm thử phân quyền"
@@ -1540,13 +1556,11 @@ class AIService:
         lệ" có test_type "Kiểm thử biên" nhưng cũng là ca THÀNH CÔNG. Loại
         test_type mô tả KỸ THUẬT kiểm thử, không mô tả KẾT QUẢ mong đợi,
         nên không thể suy outcome một chiều từ đó.
-
         Thay vào đó, quét từ khóa THẤT BẠI/THÀNH CÔNG trên TOÀN BỘ nội
         dung nghiệp vụ của TC — scenario, description, expected_result,
         then, test_data, precondition, steps (không chỉ title/tên module)
         — có chuẩn hoá bỏ dấu (ascii-fold) để không phụ thuộc cách gõ dấu
         tiếng Việt (vd "Ðăng nhập" dựng sẵn khác "Đăng nhập" tổ hợp).
-
         Kiểm tra failure TRƯỚC success vì "không thành công" chứa sẵn
         chuỗi con "thành công" — nếu kiểm tra success trước sẽ khớp nhầm.
         """
@@ -1888,6 +1902,107 @@ class AIService:
         {'xóa đợt kiểm kê', 'xoá đợt kiểm kê'},
         {'xóa kế hoạch', 'xoá kế hoạch'},
     ]
+    def _parse_description_phrases(self, description: str) -> list[str]:
+        """
+        Tách description thành từng phrase chức năng riêng biệt, dùng CHUNG
+        1 quy tắc tách cho mọi nơi cần đọc "người dùng yêu cầu đúng những
+        chức năng nào" (_filter_modules_by_description, _resolve_requested_
+        canonicals...). VD: "phân quyền" -> ["phân quyền"];
+        "Website ...: đăng nhập, phân quyền" -> ["đăng nhập", "phân quyền"].
+        """
+        if not description or not description.strip():
+            return []
+        phrase_source = description.split(':', 1)[1] if ':' in description else description
+        phrases = [p.strip() for p in re.split(r'[,\n]', phrase_source) if p.strip()]
+        if not phrases:
+            stripped = description.strip()
+            phrases = [stripped] if stripped else []
+        return phrases
+
+    def _resolve_requested_canonicals(self, description: str) -> dict[str, str]:
+        """
+        Map mỗi phrase mà người dùng yêu cầu (vd "phân quyền", "chấm công",
+        "phân quyền thành công", "tạo testcase cho chức năng phân quyền")
+        sang canonical key ĐÃ có fixed template tập trung VÀ đang nằm trong
+        tập enforce (_SRE_DEFAULT_ENFORCED_CANONICALS — gồm cả "phan_quyen",
+        "cham_cong"). Trả về {canonical: phrase_gốc_khớp_đầu_tiên}.
+        Đây là nguồn canonical DUY NHẤT lấy trực tiếp từ yêu cầu người dùng,
+        không suy diễn từ tên dự án, mô tả cũ, lịch sử hội thoại, hay ảnh.
+        """
+        result: dict[str, str] = {}
+        if _sre_normalize_function_name is None:
+            return result
+        for phrase in self._parse_description_phrases(description):
+            canonical = _sre_normalize_function_name(phrase)
+            if canonical and canonical in _SRE_DEFAULT_ENFORCED_CANONICALS:
+                result.setdefault(canonical, phrase)
+        return result
+
+    def _apply_known_canonical_templates(self, data: dict, description: str) -> dict:
+        """
+        Lớp chặn cứng CUỐI CÙNG cho targeted mode: với các chức năng người
+        dùng yêu cầu mà đã có fixed template tập trung trong
+        scenario_rule_engine.py (vd "phan_quyen", "cham_cong", "dang_nhap",
+        "quay_lai"...), LUÔN build trực tiếp bằng build_testcases_for_module()
+        — KHÔNG phụ thuộc việc AI có sinh đúng tên module tương ứng hay
+        không, và KHÔNG cho phép các module AI tự suy diễn thêm (vd "Kiểm
+        tra dị ứng", "Quản lý đơn thuốc" khi user chỉ yêu cầu "phân quyền")
+        lọt qua.
+
+        - Nếu TOÀN BỘ phrase trong description đều là canonical đã enforce
+          (request "thuần" — như input chỉ "phân quyền"): XÓA HẲN mọi module
+          khác AI sinh ra, CHỈ giữ đúng các module fixed template tương ứng.
+        - Nếu chỉ MỘT PHẦN phrase khớp canonical đã enforce (vd user vừa
+          yêu cầu "phân quyền" vừa yêu cầu "thêm mới" — "thêm mới" thuộc
+          nhóm CRUD field-aware, cần AI đọc field thật từ ảnh, không có
+          template cố định để enforce cứng): CHỈ ép canonical đã enforce,
+          giữ nguyên module khác do AI sinh — không đụng tới pipeline CRUD
+          field-aware hiện có.
+        - Nếu description không khớp canonical nào đã enforce: giữ nguyên
+          data, không thay đổi gì (an toàn cho mọi flow khác).
+        """
+        if _sre_normalize_function_name is None or _sre_build_testcases_for_module is None:
+            return data
+        if not isinstance(data, dict):
+            return data
+        phrases = self._parse_description_phrases(description)
+        if not phrases:
+            return data
+        requested_canonicals = self._resolve_requested_canonicals(description)
+        print(f"[TargetedParse] Chức năng người dùng yêu cầu (phrases): {phrases}")
+        print(f"[TargetedParse] Canonical đã parse (có fixed template): {requested_canonicals}")
+        if not requested_canonicals:
+            return data
+        modules = data.get('modules', {})
+        if not isinstance(modules, dict):
+            modules = {}
+        forced_modules: dict[str, list[dict]] = {}
+        for canonical, phrase in requested_canonicals.items():
+            built = _sre_build_testcases_for_module(phrase, canonical, "") or {}
+            for disp_name, tcs in built.items():
+                forced_modules[disp_name] = tcs
+        full_scope = len(requested_canonicals) == len(phrases)
+        if full_scope:
+            data['modules'] = forced_modules
+            print(
+                "[TargetedParse] Toàn bộ chức năng yêu cầu đều có fixed template "
+                f"→ CHỈ giữ đúng {len(forced_modules)} module: {list(forced_modules.keys())} "
+                "(loại bỏ mọi module khác AI có thể đã tự sinh thêm)"
+            )
+            return data
+        new_modules: dict[str, list[dict]] = dict(forced_modules)
+        for mod_name, tcs in modules.items():
+            mod_canonical = _sre_normalize_function_name(mod_name)
+            if mod_canonical in requested_canonicals:
+                continue
+            new_modules.setdefault(mod_name, tcs)
+        data['modules'] = new_modules
+        print(
+            "[TargetedParse] Một phần chức năng có fixed template, phần còn lại giữ "
+            f"nguyên AI sinh → danh sách module sau khi ép/lọc: {list(new_modules.keys())}"
+        )
+        return data
+
     def _filter_modules_by_description(self, data: dict, description: str) -> dict:
         """
         Lớp chặn cứng cho targeted request: chỉ giữ lại các chức năng mà AI sinh ra
@@ -1924,6 +2039,8 @@ class AIService:
             'xuất word': ['word'],
             'phân trang': ['pagination'],
             'sinh mã': ['tạo mã', 'generate code'],
+            'phân quyền': ['permission', 'role', 'phan quyen'],
+            'chấm công': ['attendance', 'check in', 'check-in', 'cham cong'],
         }
         raw_terms: set[str] = set()
         for phrase in phrases:
@@ -1985,7 +2102,7 @@ class AIService:
         'khoá', 'kích hoạt', 'vô hiệu', 'sao chép', 'copy', 'mở', 'đóng',
         'reset', 'làm mới', 'refresh', 'validate', 'kiểm tra', 'xác thực',
         'phê duyệt', 'từ chối', 'gán', 'phân quyền', 'đổi', 'cấu hình',
-        'sinh', 'popup',
+        'sinh', 'popup', 'chấm công', 'chấm',
     ]
     def _drop_static_data_modules(self, data: dict) -> dict:
         """
@@ -2009,12 +2126,26 @@ class AIService:
         return data
     _THEM_MOI_NOTE = "Trường hợp nhập dữ liệu không phù hợp, không lưu thông tin và có thông báo lỗi phù hợp"
     _POPUP_ACTION_4TC_KEYS = ('sinh mã', 'hủy bỏ', 'huỷ bỏ', 'đóng popup')
+    # BUG ĐÃ SỬA: trước đây chỉ khớp "hủy bỏ"/"huỷ bỏ" (substring), KHÔNG
+    # khớp "hủy"/"huỷ"/"cancel" trần trụi — dẫn tới việc module tên ĐÚNG
+    # "Hủy" (không có drift/chêm object gì) vẫn bị _finalize_success_failure_
+    # grouping tách thành "Hủy thành công"/"Hủy không thành công" TRƯỚC khi
+    # scenario_rule_engine.replace_generated_cases_with_template kịp chạy,
+    # khiến normalize_function_name("Hủy thành công") không khớp exact nữa
+    # và fixed template (3 kịch bản chuẩn) KHÔNG BAO GIỜ được áp dụng.
+    # Dùng \b word-boundary (không phải substring thường) cho các từ NGẮN
+    # "hủy"/"huỷ"/"cancel" để tránh khớp nhầm vào chữ khác chứa chuỗi con
+    # tương tự (vd "hủy hoại"); các key dài đã có ('sinh mã', 'đóng popup')
+    # đủ đặc trưng nên giữ nguyên kiểu substring như cũ.
+    _POPUP_ACTION_4TC_BARE_WORD_RE = re.compile(r'\b(hủy|huỷ|cancel)\b')
     def _is_popup_action_module_4tc(self, module_name_lower: str) -> bool:
-        """True nếu chức năng là 1 trong 3 action button modal cần đúng 4 TC:
-        Sinh mã / Hủy bỏ / Đóng popup. KHÔNG khớp "Thêm mới và tiếp tục"
+        """True nếu chức năng là 1 trong các action button modal cần đúng 4 TC:
+        Sinh mã / Hủy (hủy bỏ) / Đóng popup. KHÔNG khớp "Thêm mới và tiếp tục"
         (chức năng đó cần đúng 2 TC, xử lý riêng bởi logic Thêm mới/generic)."""
         lower = re.sub(r'\s+', ' ', module_name_lower.strip())
-        return any(key in lower for key in self._POPUP_ACTION_4TC_KEYS)
+        if any(key in lower for key in self._POPUP_ACTION_4TC_KEYS):
+            return True
+        return bool(self._POPUP_ACTION_4TC_BARE_WORD_RE.search(lower))
     def _is_navigation_ui_module(self, module_name: str) -> bool:
         """
         True nếu chức năng là điều hướng/UI (Navigation/UI Actions): Quay
@@ -2046,6 +2177,117 @@ class AIService:
         if 'mở popup' in lower or 'mo popup' in lower:
             return True
         return False
+
+    # canonical (theo scenario_rule_engine.normalize_function_name) của các
+    # nút hành động UI CHUNG, không gắn với 1 đối tượng nghiệp vụ cụ thể —
+    # đây là những canonical mà nếu AI tự chêm thêm tên đối tượng nghiệp vụ
+    # (vd "Hủy lớp học" thay vì "Hủy") thì chắc chắn là LỖI, cần rollback.
+    _GENERIC_ACTION_PAD_GUARD_CANONICALS = frozenset({"huy", "dong_popup", "sinh_ma"})
+
+    def _realign_generic_action_module_names(self, description: str | None, modules: dict) -> dict:
+        """
+        SAFETY NET: chống lỗi "Hủy" (hoặc "Đóng popup"/"Sinh mã") bị AI tự
+        SINH RA với tên module đã bị CHÊM THÊM tên đối tượng nghiệp vụ lấy
+        từ ngữ cảnh dự án — vd người dùng yêu cầu đúng "hủy" nhưng AI trả
+        về module "Hủy lớp học" vì dự án đang là "Quản lý lớp học".
+        scenario_rule_engine.normalize_function_name() KHÔNG tự bắt được
+        case này vì nó CHỈ khớp CHÍNH XÁC "hủy"/"huỷ"/"cancel"... (đúng
+        theo yêu cầu — để KHÔNG nuốt nhầm 1 hành động nghiệp vụ THẬT SỰ
+        được đặt tên rõ ràng, vd "Hủy lịch hẹn" do người dùng tự gõ) —
+        "Hủy lớp học" không khớp exact nên bị normalize_function_name bỏ
+        qua, và module cứ thế trôi qua replace_generated_cases_with_template
+        mà KHÔNG được thay bằng fixed template đúng.
+        Hàm này chạy TRƯỚC _finalize_success_failure_grouping / trước khi
+        scenario_rule_engine override, và CHỈ đổi tên module khi TẤT CẢ
+        điều kiện sau đúng — mỗi điều kiện tương ứng 1 rủi ro cụ thể cần
+        tránh:
+          1. Người dùng có yêu cầu (trong `description`, tách theo dấu
+             phẩy/;/+//và — CÙNG cách _coverage_checker đang tách) một mục
+             mà bản thân nó CHÍNH XÁC là 1 canonical hành động UI chung
+             (huy/dong_popup/sinh_ma) — vd đúng "hủy", không kèm từ nào
+             khác. Nếu người dùng không hề yêu cầu như vậy thì không có gì
+             để đối chiếu, không đụng vào.
+          2. Modules hiện tại CHƯA có module nào khớp CHÍNH XÁC canonical
+             đó — nếu đã có rồi thì không cần sửa, tránh làm trùng/mất dữ
+             liệu.
+          3. Đúng 1 (không phải 0, không phải nhiều hơn 1 — mơ hồ thì
+             không đoán) module có tên bắt đầu bằng đúng từ người dùng đã
+             gõ, kèm hậu tố phía sau (vd "Hủy lớp học" bắt đầu bằng "hủy").
+          4. Tên ĐẦY ĐỦ của module nghi ngờ đó, tự nó, KHÔNG PHẢI là 1
+             canonical khác đã biết (an toàn — không đụng vào 1 chức năng
+             cố định khác chẳng may trùng tiền tố).
+          5. Cụm từ ĐẦY ĐỦ đó (vd "hủy lớp học") KHÔNG xuất hiện trong
+             chính `description` gốc của người dùng — tức người dùng CHƯA
+             từng tự gõ đúng cụm đó. Nếu người dùng ĐÃ tự gõ "hủy lớp học"
+             thì đây là 1 hành động nghiệp vụ RIÊNG do người dùng chủ định,
+             PHẢI giữ nguyên, TUYỆT ĐỐI không rollback (đúng quy tắc: chỉ
+             coi là hành động hủy nghiệp vụ khi người dùng nói rõ đầy đủ).
+        Nếu cả 5 điều kiện đúng: đổi tên KEY của module đó về đúng tên hiển
+        thị chuẩn (viết hoa chữ cái đầu của đúng cụm người dùng đã gõ, vd
+        "Hủy"), gộp toàn bộ TC bên trong vào key mới, và cập nhật lại field
+        'chức năng'/'feature'/'module' của từng TC đang trỏ tới tên cũ.
+        """
+        if not description or not isinstance(modules, dict) or not modules:
+            return modules
+        if _sre_normalize_function_name is None:
+            return modules
+
+        raw_terms = re.split(r'[,;+/]|(?:\bvà\b)', description)
+        terms = [t.strip() for t in raw_terms if t.strip()]
+        if not terms:
+            return modules
+
+        desc_lower = description.strip().lower()
+
+        for term in terms:
+            term_canonical = _sre_normalize_function_name(term)
+            if term_canonical is None or term_canonical not in self._GENERIC_ACTION_PAD_GUARD_CANONICALS:
+                continue
+            already_exact = any(
+                _sre_normalize_function_name(name) == term_canonical for name in modules.keys()
+            )
+            if already_exact:
+                continue
+            term_norm = term.strip().lower()
+            candidates = []
+            for name in list(modules.keys()):
+                name_lower = re.sub(r'\s+', ' ', str(name).strip().lower())
+                if not name_lower.startswith(term_norm):
+                    continue
+                suffix = name_lower[len(term_norm):].strip()
+                if not suffix:
+                    continue
+                if _sre_normalize_function_name(name) is not None:
+                    continue
+                if name_lower in desc_lower:
+                    continue
+                candidates.append(name)
+            if len(candidates) != 1:
+                continue
+            drifted_name = candidates[0]
+            display_name = term.strip()
+            display_name = display_name[0].upper() + display_name[1:]
+            if drifted_name == display_name:
+                continue
+            tcs = modules.pop(drifted_name)
+            if not isinstance(tcs, list):
+                tcs = []
+            for tc in tcs:
+                if isinstance(tc, dict):
+                    for key in ('chức năng', 'feature', 'module'):
+                        if tc.get(key) == drifted_name:
+                            tc[key] = display_name
+            if display_name in modules and isinstance(modules.get(display_name), list):
+                modules[display_name].extend(tcs)
+            else:
+                modules[display_name] = tcs
+            print(
+                f"[RealignGenericAction] Module '{drifted_name}' bị AI tự chêm thêm "
+                f"đối tượng nghiệp vụ dù người dùng chỉ yêu cầu '{term.strip()}' "
+                f"-> đổi lại tên module thành '{display_name}'."
+            )
+        return modules
+
     def _is_them_moi_module(self, module_name: str) -> bool:
         """
         True CHỈ KHI chức năng thực sự là "Thêm mới" (nút lưu chính), KHÔNG
@@ -2736,7 +2978,9 @@ class AIService:
                 continue
         data["modules"] = modules
         return data
-    def _normalize_test_cases(self, data: dict, apply_static_filter: bool = True) -> dict:
+    def _normalize_test_cases(
+        self, data: dict, apply_static_filter: bool = True, description: str | None = None,
+    ) -> dict:
         if apply_static_filter:
             data = self._drop_static_data_modules(data)
         data = self._dedupe_similar_modules(data)
@@ -2907,7 +3151,12 @@ class AIService:
                     tc['priority'] = 'Trung bình'
                 tc['test_type'] = _infer_test_type(tc)
                 tc['status'] = 'Chưa chạy'
+        data['modules'] = self._realign_generic_action_module_names(
+            description, data.get('modules', {}) or {}
+        )
         data = self._finalize_success_failure_grouping(data)
+        if description and self._is_targeted_request(description):
+            data = self._apply_known_canonical_templates(data, description)
         if _sre_replace_generated_cases_with_template is not None:
             _sre_modules_before = data.get('modules', {}) or {}
             _sre_names_before = list(_sre_modules_before.keys())
@@ -2949,21 +3198,20 @@ class AIService:
                     continue
                 tc['id'] = f"TC_{seq:03d}"
                 seq += 1
-        collapsed_modules: dict[str, list] = {}
-        for module_name, test_cases in data.get('modules', {}).items():
-            if not isinstance(test_cases, list):
-                continue
-            base_name, _qualifier = self._determine_base_business_function(module_name)
-            base_name = (base_name or module_name or '').strip() or module_name
-            bucket = collapsed_modules.setdefault(base_name, [])
-            for tc in test_cases:
-                if not isinstance(tc, dict):
-                    continue
-                tc['module'] = base_name
-                tc['chức năng'] = base_name
-                tc['feature'] = base_name
-                bucket.append(tc)
-        data['modules'] = collapsed_modules
+        # KHÔNG collapse data['modules'] về base_name và KHÔNG ghi đè
+        # tc['module']/tc['chức năng']/tc['feature'] bằng base_name ở đây.
+        # _finalize_success_failure_grouping() ở trên đã tạo đúng 2 nhóm
+        # "<gốc> thành công" / "<gốc> không thành công" và đã gán đúng
+        # tc['module']/tc['chức năng']/tc['feature'] CÓ hậu tố — bước này
+        # trước đây gọi lại _determine_base_business_function() để CẮT hậu
+        # tố rồi ghi đè lên chính testcase + gộp luôn data['modules'], khiến
+        # "Đăng nhập thành công" và "Đăng nhập không thành công" cùng bị rút
+        # gọn còn "Đăng nhập" ngay tại tầng backend (trước khi trả JSON cho
+        # app.py/app.js), nên dù frontend đã sửa đúng vẫn vô nghĩa.
+        # base_name (qua _determine_base_business_function) CHỈ được dùng ở
+        # nơi cần GOM NHÓM/THỐNG KÊ (vd log "Tổng chức năng" bên dưới trong
+        # _log_generation_runtime), tuyệt đối không dùng để thay đổi dữ liệu
+        # testcase hay cấu trúc data['modules'].
         print("MODULES AFTER NORMALIZE:", list(data.get('modules', {}).keys()))
         return data
     def _ensure_final_testcase_counts(self, data: dict) -> dict:
@@ -3001,18 +3249,18 @@ class AIService:
 
             if self._is_them_moi_module(name) and 'tiếp tục' not in n and self._crud_is_list_only('create'):
                 return [
-                    {'title': 'Mở form thêm mới thành công', 'scenario': 'Nhấn nút Thêm mới trên màn hình danh sách', 'expected_result': 'Hệ thống mở đúng form thêm mới để người dùng nhập dữ liệu', 'test_type': 'Kiểm thử dương'},
-                    {'title': 'Mở form thêm mới không thành công', 'scenario': 'Nhấn Thêm mới khi không có quyền hoặc hệ thống không thể tải form', 'expected_result': 'Hệ thống không mở form, hiển thị thông báo phù hợp và giữ nguyên danh sách', 'test_type': 'Kiểm thử âm'},
+                    {'title': 'Thêm mới thành công', 'scenario': 'Nhấn nút Thêm mới trên màn hình danh sách', 'expected_result': 'Hệ thống mở đúng form thêm mới để người dùng nhập dữ liệu', 'test_type': 'Kiểm thử dương'},
+                    {'title': 'Thêm mới không thành công', 'scenario': 'Nhấn Thêm mới khi không có quyền hoặc hệ thống không thể tải form', 'expected_result': 'Hệ thống không mở form, hiển thị thông báo phù hợp và giữ nguyên danh sách', 'test_type': 'Kiểm thử âm'},
                 ]
             if (n.startswith(('cập nhật', 'chỉnh sửa')) or n in {'sửa', 'update', 'edit'}) and self._crud_is_list_only('update'):
                 return [
-                    {'title': 'Mở form cập nhật thành công', 'scenario': 'Nhấn biểu tượng Cập nhật tại một dòng dữ liệu', 'expected_result': 'Hệ thống mở đúng form và hiển thị đúng dữ liệu của bản ghi được chọn', 'test_type': 'Kiểm thử dương'},
-                    {'title': 'Mở form cập nhật không thành công', 'scenario': 'Nhấn Cập nhật khi không có quyền, bản ghi không tồn tại hoặc form không tải được', 'expected_result': 'Hệ thống không mở form, hiển thị thông báo phù hợp và không thay đổi dữ liệu', 'test_type': 'Kiểm thử âm'},
+                    {'title': 'Cập nhật thành công', 'scenario': 'Nhấn biểu tượng Cập nhật tại một dòng dữ liệu', 'expected_result': 'Hệ thống mở đúng form và hiển thị đúng dữ liệu của bản ghi được chọn', 'test_type': 'Kiểm thử dương'},
+                    {'title': 'Cập nhật không thành công', 'scenario': 'Nhấn Cập nhật khi không có quyền, bản ghi không tồn tại hoặc form không tải được', 'expected_result': 'Hệ thống không mở form, hiển thị thông báo phù hợp và không thay đổi dữ liệu', 'test_type': 'Kiểm thử âm'},
                 ]
             if (n.startswith(('xóa', 'xoá')) or n == 'delete') and self._crud_is_list_only('delete'):
                 return [
-                    {'title': 'Mở xác nhận xóa thành công', 'scenario': 'Nhấn biểu tượng Xóa tại một dòng dữ liệu', 'expected_result': 'Hệ thống mở popup xác nhận đúng đối tượng được chọn', 'test_type': 'Kiểm thử dương'},
-                    {'title': 'Mở xác nhận xóa không thành công', 'scenario': 'Nhấn Xóa khi không có quyền, bản ghi không tồn tại hoặc popup không tải được', 'expected_result': 'Hệ thống không mở popup, hiển thị thông báo phù hợp và giữ nguyên dữ liệu', 'test_type': 'Kiểm thử âm'},
+                    {'title': 'Xóa thành công', 'scenario': 'Nhấn biểu tượng Xóa tại một dòng dữ liệu', 'expected_result': 'Hệ thống mở popup xác nhận đúng đối tượng được chọn', 'test_type': 'Kiểm thử dương'},
+                    {'title': 'Xóa không thành công', 'scenario': 'Nhấn Xóa khi không có quyền, bản ghi không tồn tại hoặc popup không tải được', 'expected_result': 'Hệ thống không mở popup, hiển thị thông báo phù hợp và giữ nguyên dữ liệu', 'test_type': 'Kiểm thử âm'},
                 ]
             if n == 'tìm':
                 return [
@@ -4701,6 +4949,8 @@ class AIService:
             'phân trang', 'checkbox', 'làm mới',
             'đóng popup', 'nút x', 'hủy bỏ', 'đóng',
             'sinh mã', 'tạo mã',
+            'phân quyền', 'phan quyen',
+            'chấm công', 'cham cong',
             'chỉ sinh', 'chỉ tạo', 'chỉ cần',
             'cho chức năng', 'cho chức năng', 'cho nút',
             'không cần', 'bỏ qua',
@@ -5169,7 +5419,7 @@ class AIService:
                 )
                 result = self._filter_modules_by_description(result, description)
                 print("[6/6] 🔧 Đang chuẩn hóa kết quả và lập coverage report...")
-                normalized = self._normalize_test_cases(result)
+                normalized = self._normalize_test_cases(result, description=description)
                 return self._build_final_coverage_report(
                     normalized, scanned, image_blocks, targeted=True, description=description,
                 )
@@ -5196,7 +5446,7 @@ class AIService:
                         self._build_system_prompt(SYSTEM_PROMPT_FULL), proj,
                     )
                     print("[6/6] 🔧 Đang chuẩn hóa kết quả và lập coverage report...")
-                    normalized = self._normalize_test_cases(merged)
+                    normalized = self._normalize_test_cases(merged, description=description)
                     return self._build_final_coverage_report(
                         normalized, scanned, image_blocks, targeted=False, description=description,
                     )
@@ -5206,7 +5456,7 @@ class AIService:
                         self._build_system_prompt(SYSTEM_PROMPT_FULL), proj,
                     )
                     print("[6/6] 🔧 Đang chuẩn hóa kết quả và lập coverage report...")
-                    normalized = self._normalize_test_cases(batch1)
+                    normalized = self._normalize_test_cases(batch1, description=description)
                     return self._build_final_coverage_report(
                         normalized, scanned, image_blocks, targeted=False, description=description,
                     )
@@ -5228,7 +5478,7 @@ class AIService:
                         self._build_system_prompt(SYSTEM_PROMPT_FULL), proj,
                     )
                     print("[6/6] 🔧 Đang chuẩn hóa kết quả và lập coverage report...")
-                    normalized = self._normalize_test_cases(result)
+                    normalized = self._normalize_test_cases(result, description=description)
                     return self._build_final_coverage_report(
                         normalized, scanned, image_blocks, targeted=False, description=description,
                     )
@@ -5310,7 +5560,9 @@ class AIService:
                 if targeted and (not previous_test_cases or context_mode == "screen_only"):
                     result = self._filter_modules_by_description(result, description)
                 print("[6/6] 🔧 Đang chuẩn hóa kết quả và lập coverage report...")
-                normalized = self._normalize_test_cases(result, apply_static_filter=bool(image_blocks))
+                normalized = self._normalize_test_cases(
+                    result, apply_static_filter=bool(image_blocks), description=description,
+                )
                 return self._build_final_coverage_report(
                     normalized, scanned, image_blocks, targeted=targeted, description=description,
                 )

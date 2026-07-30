@@ -29,16 +29,8 @@
 - Chỉ lịch Chờ khám mới được hủy theo quy định.
 - Trạng thái gồm Chờ khám, Đang khám, Hoàn thành, Đã hủy.
 
-## MODULE: Đơn thuốc
 
-### Business Rules
 
-- Chỉ bác sĩ được phân quyền mới được kê đơn.
-- Đơn thuốc phải thuộc một lần khám hợp lệ.
-- Thuốc phải tồn tại và đang được phép sử dụng.
-- Liều dùng, số lượng và cách dùng phải hợp lệ.
-- Kiểm tra dị ứng hoặc tương tác thuốc nếu có dữ liệu.
-- Đơn đã phát thuốc không được sửa trực tiếp.
 
 ## MODULE: Thanh toán viện phí
 

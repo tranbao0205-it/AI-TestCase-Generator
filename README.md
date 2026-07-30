@@ -10,6 +10,7 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 
 ---
 
+<<<<<<< HEAD
  Tính năng chính
 - Sinh Test Case từ mô tả nghiệp vụ (Text Prompt)
 - Phân tích các đoạn mô tả tự do, tự động bóc tách các chức năng chính/phụ và sinh kịch bản kiểm thử tương ứng.
@@ -32,6 +33,30 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 - Tự động đóng gói kết quả ra file `.xlsx` nhiều Sheet (Tổng quan, Chi tiết theo chức năng) được căn chỉnh giao diện chuẩn hóa.
 - Quản lý Lịch sử (History Management)**:
 - Lưu trữ toàn bộ các phiên sinh Test Case vào cơ sở dữ liệu SQLite, giúp tìm kiếm, mở lại và tải xuống báo cáo dễ dàng.
+=======
+## Tính năng chính
+- **Sinh Test Case từ mô tả nghiệp vụ (Text Prompt)
+- **: Phân tích các đoạn mô tả tự do, tự động bóc tách các chức năng chính/phụ và sinh kịch bản kiểm thử tương ứng.
+- **Sinh Test Case từ Tài liệu đặc tả (Specification Documents)**:
+  - Hỗ trợ định dạng: `.txt`, `.docx`, `.pdf`, `.md`.
+  - Tự động trích xuất nội dung và xây dựng ma trận Test Case cho toàn bộ tài liệu.
+- **Sinh Test Case từ Hình ảnh Giao diện (Vision AI)**:
+  - Hỗ trợ định dạng: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`.
+  - Tự động nhận diện các thành phần UI (Form, Button, Input, Dropdown, Validation error...) để đề xuất Test Case tương ứng.
+- **Tích hợp Rule Engine & Scenario Rules**:
+  - Áp dụng các quy tắc kiểm thử tiêu chuẩn (Boundary Value, Equivalence Partitioning, Negative Testing, Security Basic).
+- **Tích hợp RAG (Retrieval-Augmented Generation)**:
+  - Tra cứu tri thức kiểm thử từ Knowledge Base để bổ sung kịch bản chi tiết.
+- **Kiểm tra & Báo cáo độ bao phủ (Coverage Report)**:
+  - Đánh giá mức độ hoàn thiện của các kịch bản và báo cáo tỷ lệ bao phủ theo chức năng.
+- **Chỉnh sửa & Sinh lại linh hoạt (Interactive Workspace)**:
+  - Cho phép chỉnh sửa tiêu đề, các bước thực hiện, kết quả mong đợi trực tiếp trên giao diện Web.
+  - Hỗ trợ sinh lại (Re-generate) cho từng Test Case đơn lẻ hoặc toàn bộ một nhóm chức năng.
+- **Xuất Excel chuyên nghiệp**:
+  - Tự động đóng gói kết quả ra file `.xlsx` nhiều Sheet (Tổng quan, Chi tiết theo chức năng) được căn chỉnh giao diện chuẩn hóa.
+- **Quản lý Lịch sử (History Management)**:
+  - Lưu trữ toàn bộ các phiên sinh Test Case vào cơ sở dữ liệu SQLite, giúp tìm kiếm, mở lại và tải xuống báo cáo dễ dàng.
+>>>>>>> 83453b0 (Update project)
 
 ---
 ## Kiến trúc hệ thống
@@ -39,6 +64,7 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 ## Kiến trúc hệ thống
 
 ```mermaid
+<<<<<<< HEAD
 flowchart LR
 
     %% ===== INPUT =====
@@ -86,6 +112,31 @@ flowchart LR
     class G,H,I,J,K ai;
     class L,M output;
     class N,O storage;
+=======
+graph TD
+    A[Người dùng / Frontend Web] -->|HTTP / REST API| B[Flask Backend Server]
+    
+    subgraph "Core Backend Services"
+        B --> C[Workflow Service]
+        B --> D[FileReader Service]
+        B --> E[History Service / SQLite DB]
+    end
+
+    subgraph "AI & Intelligence Layer"
+        C --> F[Rule Engine & Scenario Rules]
+        C --> G[RAG Knowledge Service]
+        C --> H[Vision AI Service]
+        C --> I[OpenAI GPT-4o Service]
+    end
+
+    subgraph "Output & Reporting"
+        C --> J[Coverage Checker]
+        C --> K[Excel Service openpyxl]
+    end
+
+    K -->|File .xlsx| A
+    E -->|Lưu vết / Xem lại| A
+>>>>>>> 83453b0 (Update project)
 ```
 ---
 ## Quy trình xử lý dữ liệu
@@ -143,11 +194,19 @@ deadlineAITaoTestCaseWebsite/
 ---
 
 ## Hướng dẫn cài đặt & Khởi chạy
+<<<<<<< HEAD
 1. Yêu cầu tiền đề (Prerequisites)
 - Python **3.10** hoặc cao hơn.
 - Tài khoản OpenAI và **API Key** khả dụng.
 
 2. Cài đặt môi trường
+=======
+### 1. Yêu cầu tiền đề (Prerequisites)
+- Python **3.10** hoặc cao hơn.
+- Tài khoản OpenAI và **API Key** khả dụng.
+
+### 2. Cài đặt môi trường
+>>>>>>> 83453b0 (Update project)
 ```bash
 # 1. Clone repository (nếu chưa có)
 git clone <repository-url>
@@ -164,7 +223,11 @@ source .venv/bin/activate
 # 4. Cài đặt các thư viện cần thiết
 pip install -r requirements.txt
 ```
+<<<<<<< HEAD
 3. Cấu hình biến môi trường (.env)
+=======
+### 3. Cấu hình biến môi trường (.env)
+>>>>>>> 83453b0 (Update project)
 Tạo file `.env` tại thư mục gốc của dự án (hoặc sao chép từ `.env.example`):
 ```bash
 cp .env.example .env
@@ -176,7 +239,11 @@ OPENAI_MODEL=gpt-4o-mini
 SECRET_KEY=your-custom-secret-key
 ```
 
+<<<<<<< HEAD
 4. Khởi chạy ứng dụng
+=======
+### 4. Khởi chạy ứng dụng
+>>>>>>> 83453b0 (Update project)
 ```bash
 python app.py
 ```
@@ -184,8 +251,15 @@ python app.py
 Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
 **`http://127.0.0.1:5000`**
 
+<<<<<<< HEAD
  Danh sách API Chính (REST Endpoints)
 | Endpoint | Method | Mô tả |
+=======
+
+## Danh sách API Chính (REST Endpoints)
+| Endpoint | Method | Mô tả |
+| :--- | :--- | :--- |
+>>>>>>> 83453b0 (Update project)
 | `/` | `GET` | Trả về giao diện chính của ứng dụng |
 | `/api/chat` | `POST` | Sinh Test Case từ mô tả văn bản tự do |
 | `/api/upload-file` | `POST` | Tải lên & trích xuất file tài liệu (`.pdf`, `.docx`, `.txt`, `.md`) |
@@ -198,6 +272,7 @@ Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
 | `/download/<filename>` | `GET` | Tải xuống file Excel từ thư mục output |
 ---
 
+<<<<<<< HEAD
  Hướng dẫn sử dụng chi tiết
 1. Sinh Test Case bằng văn bản**:
    - Nhập mô tả chức năng vào ô chat (ví dụ: *"Tạo bộ test case cho chức năng Đăng ký tài khoản"*).
@@ -209,6 +284,19 @@ Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
    - Tải lên hình ảnh giao diện Web/App.
    - AI Vision sẽ quét và nhận diện các form, nút bấm, validation để sinh bộ test chuẩn.
 4. Chỉnh sửa & Xuất Báo cáo**:
+=======
+## Hướng dẫn sử dụng chi tiết
+1. **Sinh Test Case bằng văn bản**:
+   - Nhập mô tả chức năng vào ô chat (ví dụ: *"Tạo bộ test case cho chức năng Đăng ký tài khoản"*).
+   - Bấm **Gửi**, hệ thống sẽ phân tích và hiển thị danh sách Test Case tổ chức theo từng tính năng.
+2. **Sinh Test Case bằng tài liệu**:
+   - Nhấn nút **Tải file tài liệu** và chọn file đặc tả yêu cầu (`.pdf`, `.docx`...).
+   - Nhấn **Phân tích**, hệ thống đọc nội dung tài liệu và tạo bộ Test Case tương ứng.
+3. **Sinh Test Case bằng hình ảnh**:
+   - Tải lên hình ảnh giao diện Web/App.
+   - AI Vision sẽ quét và nhận diện các form, nút bấm, validation để sinh bộ test chuẩn.
+4. **Chỉnh sửa & Xuất Báo cáo**:
+>>>>>>> 83453b0 (Update project)
    - Nhấp trực tiếp vào ô nội dung bất kỳ trong bảng preview để chỉnh sửa.
    - Nhấn nút **Xuất Excel** để tải về file Excel chuyên nghiệp.
 

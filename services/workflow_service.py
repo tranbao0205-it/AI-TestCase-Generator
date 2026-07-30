@@ -3,12 +3,9 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Any
-
 class WorkflowService:
     """Link a current screen to a prior screen only when evidence is strong."""
-
     LINK_THRESHOLD = 0.72
-
     def find_best_parent(self, previous_context: dict[str, Any] | None, current_screen: dict[str, Any]) -> dict[str, Any]:
         previous_screens = self._extract_screens(previous_context)
         if not previous_screens:
@@ -36,7 +33,7 @@ class WorkflowService:
                 "\n=== WORKFLOW LINK — GIỚI HẠN BẰNG CHỨNG ===\n"
                 f"- Màn hình hiện tại được mở từ \"{relation.get('parent_title')}\" "
                 f"qua hành động \"{relation.get('via_action')}\".\n"
-                "- Chỉ dùng màn hình trước để tạo testcase điều hướng/mở màn hình hiện tại.\n"
+                "- Chỉ dùng màn hình trước để tạo testcase điều hướng /mở màn hình hiện tại.\n"
                 "- Field, validation, button, rule và expected result chi tiết phải lấy từ màn hình hiện tại.\n"
                 "- Tuyệt đối không sao chép field hoặc rule của màn hình trước sang màn hình hiện tại.\n"
                 "================================================\n"

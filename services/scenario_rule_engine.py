@@ -30,7 +30,6 @@ GHI CHÚ PHẠM VI ÁP DỤNG (quan trọng — tránh regression):
   không gộp thành công/không thành công, luôn đúng 4 TC cố định.
 - "Sinh mã", "Hủy", "Đóng popup" là các hành động popup — theo checklist
   WEB2519 mỗi hành động này PHẢI có đúng 4 TC cố định (không phải 2).
-
 ====================================================================
 GHI CHÚ REFACTOR (không đổi API, không đổi output, không đổi workflow)
 ====================================================================
@@ -172,7 +171,23 @@ def normalize_function_name(module_name: str) -> str | None:
         return "huy"
     if "sinh mã" in n or n in {"sinh ma", "generate code", "auto generate", "tự sinh mã"}:
         return "sinh_ma"
-
+    if "chấm công" in n or "cham cong" in n or n in {
+        "attendance",
+        "check in",
+        "check-in",
+        "check out",
+        "check-out",
+    }:
+        return "cham_cong"
+    if "phân quyền" in n or "phan quyen" in n or n in {
+        "permission",
+        "permissions",
+        "role",
+        "roles",
+        "role management",
+        "grant permission",
+    }:
+        return "phan_quyen"
     return None
 
 CRUD_FIELD_AWARE_CANONICALS = frozenset({
@@ -183,6 +198,7 @@ DEFAULT_ENFORCED_CANONICALS = frozenset({
     "xuat_file", "in", "luu", "huy", "dong_popup", "sinh_ma",
     "dang_xuat", "quen_mat_khau", "doi_mat_khau",
     "upload_file", "import_file", "download_file",
+    "cham_cong", "phan_quyen",
 })
 NO_GROUPING_CANONICALS = frozenset({"quay_lai"})
 NO_OUTCOME_SPLIT_CANONICALS = frozenset({"huy", "dong_popup", "sinh_ma"})
@@ -778,34 +794,103 @@ CANCEL_SCENARIOS: list[dict] = [
 
 GENERATE_CODE_SCENARIOS: list[dict] = [
     {
-        "module": 'Sinh mã',
+        "module": 'Sinh mã thành công',
         "title": 'Sinh mã thành công',
         "scenario": 'Nhấn sinh mã khi dữ liệu đầu vào cần thiết để tạo mã đã hợp lệ',
         "expected_result": 'Hệ thống tự động sinh mã đúng quy tắc, duy nhất và hiển thị vào đúng trường tương ứng',
         "test_type": 'Kiểm thử chức năng',
     },
     {
-        "module": 'Sinh mã',
+        "module": 'Sinh mã không thành công',
         "title": 'Sinh mã không thành công',
         "scenario": 'Thực hiện sinh mã khi thiếu dữ liệu đầu vào cần thiết để tạo mã',
         "expected_result": 'Hiển thị thông báo phù hợp, không sinh mã',
         "test_type": 'Kiểm thử chức năng',
     },
     {
-        "module": 'Sinh mã',
+        "module": 'Sinh mã không thành công',
         "title": 'Sinh mã không thành công',
         "scenario": 'Kiểm tra định dạng/tiền tố/độ dài của mã vừa sinh, và sinh mã nhiều lần liên tiếp cho các bản ghi khác nhau',
         "expected_result": 'Mã sinh ra luôn đúng định dạng, đúng quy tắc và không trùng với mã đã tồn tại hoặc đã sinh trước đó',
         "test_type": 'Kiểm thử chức năng',
     },
     {
-        "module": 'Sinh mã',
+        "module": 'Sinh mã không thành công',
         "title": 'Sinh mã không thành công',
         "scenario": 'Thực hiện sinh mã khi đã hết dải mã khả dụng, hoặc trong lúc dịch vụ sinh mã không phản hồi',
         "expected_result": 'Hiển thị thông báo lỗi phù hợp (hết dải mã/lỗi hệ thống), không sinh ra mã trùng hoặc sai quy tắc',
         "test_type": 'Kiểm thử chức năng',
     },
 ]
+ATTENDANCE_SCENARIOS: list[dict] = [
+    {
+        "module": "Chấm công thành công",
+        "title": "Chấm công thành công",
+        "scenario": "Nhân viên thực hiện chấm công vào đúng thời gian và đúng vị trí.",
+        "expected_result": "Hệ thống ghi nhận thời gian chấm công và hiển thị thông báo chấm công thành công.",
+        "test_type": "Kiểm thử chức năng",
+    },
+    {
+        "module": "Chấm công không thành công",
+        "title": "Chấm công không thành công",
+        "scenario": "Nhân viên thực hiện chấm công ngoài thời gian hoặc ngoài vị trí được phép.",
+        "expected_result": "Hệ thống không ghi nhận dữ liệu chấm công và hiển thị thông báo phù hợp.",
+        "test_type": "Kiểm thử chức năng",
+    },
+    {
+        "module": "Chấm công không thành công",
+        "title": "Chấm công không thành công",
+        "scenario": "Nhân viên thực hiện chấm công nhiều lần cho cùng một thời điểm.",
+        "expected_result": "Hệ thống không tạo bản ghi chấm công trùng và hiển thị thông báo đã chấm công.",
+        "test_type": "Kiểm thử chức năng",
+    },
+    {
+        "module": "Chấm công không thành công",
+        "title": "Chấm công không thành công",
+        "scenario": "Người dùng không có quyền chấm công hoặc tài khoản đang bị khóa.",
+        "expected_result": "Hệ thống từ chối chấm công và hiển thị thông báo không có quyền hoặc tài khoản không hợp lệ.",
+        "test_type": "Kiểm thử phân quyền",
+    },
+]
+
+PERMISSION_SCENARIOS: list[dict] = [
+    {
+        "module": "Phân quyền thành công",
+        "title": "Phân quyền thành công",
+        "scenario": "Quản trị viên chọn người dùng, chọn quyền hợp lệ và thực hiện lưu.",
+        "expected_result": "Hệ thống lưu quyền thành công và người dùng được truy cập đúng chức năng đã cấp.",
+        "test_type": "Kiểm thử phân quyền",
+    },
+    {
+        "module": "Phân quyền không thành công",
+        "title": "Phân quyền không thành công",
+        "scenario": "Người thực hiện phân quyền không có quyền quản trị hệ thống.",
+        "expected_result": "Hệ thống từ chối thao tác và hiển thị thông báo không có quyền phân quyền.",
+        "test_type": "Kiểm thử phân quyền",
+    },
+    {
+        "module": "Phân quyền không thành công",
+        "title": "Phân quyền không thành công",
+        "scenario": "Quản trị viên thực hiện lưu khi chưa chọn người dùng hoặc chưa chọn quyền.",
+        "expected_result": "Hệ thống hiển thị lỗi bắt buộc chọn người dùng và quyền, không lưu dữ liệu.",
+        "test_type": "Kiểm thử xác thực",
+    },
+    {
+        "module": "Phân quyền không thành công",
+        "title": "Phân quyền không thành công",
+        "scenario": "Quản trị viên phân quyền cho tài khoản không tồn tại, đã bị xóa hoặc đang bị khóa.",
+        "expected_result": "Hệ thống không lưu quyền và hiển thị thông báo trạng thái tài khoản không hợp lệ.",
+        "test_type": "Kiểm thử phân quyền",
+    },
+    {
+        "module": "Phân quyền không thành công",
+        "title": "Phân quyền không thành công",
+        "scenario": "Quản trị viên lưu thay đổi quyền trong lúc API hoặc cơ sở dữ liệu không phản hồi.",
+        "expected_result": "Hệ thống hiển thị thông báo lỗi, không lưu thay đổi quyền và giữ nguyên quyền cũ.",
+        "test_type": "Kiểm thử tích hợp",
+    },
+]
+
 
 FUNCTION_KNOWLEDGE: dict[str, list[dict]] = {
     "dang_nhap": LOGIN_SCENARIOS,
@@ -827,6 +912,8 @@ FUNCTION_KNOWLEDGE: dict[str, list[dict]] = {
     "luu": SAVE_SCENARIOS,
     "huy": CANCEL_SCENARIOS,
     "sinh_ma": GENERATE_CODE_SCENARIOS,
+    "cham_cong": ATTENDANCE_SCENARIOS,
+    "phan_quyen": PERMISSION_SCENARIOS,
 }
 FIXED_TEMPLATES: dict[str, list[dict]] = FUNCTION_KNOWLEDGE
 STUDENT_MANAGEMENT_SCENARIOS: list[dict] = [
@@ -1066,7 +1153,7 @@ DOMAIN_TEMPLATES: dict[str, list[dict]] = {
     "thanh_toan": PAYMENT_SCENARIOS,
     "chuyen_khoan": TRANSFER_SCENARIOS,
     "lich_su_giao_dich": TRANSACTION_HISTORY_SCENARIOS,
-    "xem_bao_cao": XEM_BÁO_CÁO,
+    "xem_bao_cao": XEM_BAO_CAO,
 }
     
 def get_fixed_template(function_name: str) -> list[dict] | None:
@@ -1199,10 +1286,24 @@ def build_testcases_for_module(
                 base_display = _infer_export_display_base(original_module_name)
             else:
                 base_display = mod_field
+            # mod_field lấy từ FUNCTION_KNOWLEDGE (vd LOGOUT_SCENARIOS,
+            # LOGIN_SCENARIOS...) ĐÃ khai báo cứng sẵn hậu tố "thành công"/
+            # "không thành công" ngay trong dữ liệu template tĩnh. Phải tách
+            # bỏ hậu tố đó trước khi tự tính lại, nếu không display_name sẽ
+            # bị lặp hậu tố 2 lần (vd "Đăng xuất thành công thành công").
+            base_display_stripped = base_display.strip()
+            for _suffix in (" không thành công", " thành công"):
+                if base_display_stripped.lower().endswith(_suffix):
+                    base_display_stripped = base_display_stripped[: -len(_suffix)].strip()
+                    break
+            base_display = base_display_stripped or base_display
             outcome = _classify_item_outcome(item)
             suffix = "thành công" if outcome == "success" else "không thành công"
             display_name = f"{base_display} {suffix}".strip()
-            base_name = base_display
+            # base_name = tên ĐẦY ĐỦ có hậu tố (display_name), dùng làm
+            # tc['module']/tc['chức năng']/tc['feature'] — PHẢI khớp chính
+            # xác với key của data['modules'], không phải tên gốc trần trụi.
+            base_name = display_name
         tc = _build_tc(display_name, item, project_name, module_base_name=base_name)
         result.setdefault(display_name, []).append(tc)
     return result
@@ -1238,7 +1339,6 @@ def replace_generated_cases_with_template(
                 new_modules[name] = tcs if isinstance(tcs, list) else []
                 order.append(name)
             continue
-
         built = build_testcases_for_module(name, canonical, project_name)
         if not built:
             if name not in new_modules:

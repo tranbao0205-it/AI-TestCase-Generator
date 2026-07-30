@@ -136,8 +136,6 @@
       `;
       document.head.appendChild(style);
     }
-
-    // ── API status ────────────────────────────────────────────────────────────────
     async function checkStatus() {
       const dot = document.getElementById('statusDot');
       // Chèn icon fa-robot một lần duy nhất (nếu chưa có), đồng bộ với logo/welcome.
@@ -722,8 +720,6 @@
       ca.appendChild(d);
       scrollBottom();
     }
-
-    // ── Typing indicator ──────────────────────────────────────────────────────────
     function showTyping() {
       const id = `ty_${Date.now()}`;
       const ca = document.getElementById('chatArea');
@@ -747,9 +743,6 @@
     function splitModuleOutcome(name) {
       const trimmed = String(name || '').trim();
       const lower = trimmed.toLowerCase();
-      // Thứ tự quan trọng: "không thành công" phải kiểm tra TRƯỚC "thành
-      // công" vì nó chứa "thành công" như hậu tố con. Đồng bộ với
-      // _OUTCOME_SUFFIXES / get_base_module_name() ở app.py.
       if (lower.endsWith(' không thành công')) {
         return { base: trimmed.slice(0, -(' không thành công'.length)).trim(), group: 'failure' };
       }
@@ -781,23 +774,18 @@
       return order.map(base => {
         const g = groupMap.get(base);
         const rows = [];
-        // Đồng bộ Chức năng = tên chức năng GỐC (base, đã gộp thành công/
-        // không thành công) cho MỌI testcase trong nhóm — mutate thẳng vào
-        // object tc thật (cùng reference với currentTCData.modules), để
-        // popup chỉnh sửa/lưu thay đổi/xuất Excel đều thấy dữ liệu nhất
-        // quán. KHÔNG đụng vào tc.title (title vẫn giữ "... thành công" /
-        // "... không thành công").
-        const syncModuleFields = (tc) => {
-          if (tc && typeof tc === 'object') {
-            tc.module = base;
-            tc['chức năng'] = base;
-            tc.feature = base;
-          }
+        const syncModuleFields = (tc, fallbackModule = '') => {
+          if (!tc || typeof tc !== 'object') return tc;
+          const detailedModule =
+            String(tc.module || tc['chức năng'] || tc.feature || fallbackModule).trim();
+          if (!tc.module) tc.module = detailedModule;
+          if (!tc['chức năng']) tc['chức năng'] = detailedModule;
+          if (!tc.feature) tc.feature = detailedModule;
           return tc;
         };
-        if (g.success) g.success.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc), sourceModule: g.success.modName, sourceIndex: idx }));
-        if (g.failure) g.failure.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc), sourceModule: g.failure.modName, sourceIndex: idx }));
-        g.others.forEach(o => o.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc), sourceModule: o.modName, sourceIndex: idx })));
+        if (g.success) g.success.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc, g.success.modName), sourceModule: g.success.modName, sourceIndex: idx }));
+        if (g.failure) g.failure.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc, g.failure.modName), sourceModule: g.failure.modName, sourceIndex: idx }));
+        g.others.forEach(o => o.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc, o.modName), sourceModule: o.modName, sourceIndex: idx })));
         const defaultAddModule =
           (g.success && g.success.modName) ||
           (g.failure && g.failure.modName) ||
@@ -806,8 +794,6 @@
         return { displayName: base, rows, defaultAddModule };
       });
     }
-
-    // ── Preview panel: thêm/sửa bằng modal; chọn dòng rồi xóa ở đầu chức năng ─────────
     function showPreview(snapshotId = activeSnapshotId) {
       if (snapshotId != null) {
         snapshotId = Number(snapshotId);
@@ -877,11 +863,6 @@
 
     let editingTcState = null; // { mode:'add'|'edit', moduleName, index }
     let pendingDeleteTc = null; // { moduleName, index }
-
-    // State cho tính năng "Sinh lại" (regenerate theo phạm vi) — xem
-    // openRegenerateScopeModal()/confirmRegenerate(). moduleName/testcaseId
-    // luôn là tên chức năng GỐC (không hậu tố thành công/không thành công),
-    // vì đây là phạm vi mà backend enforce khi ép lại module/chức năng/feature.
     let regenerateContext = {
       testcaseId: null,
       moduleName: null,
@@ -951,12 +932,20 @@
       const pri = normalizePriority(tc.priority);
       const status = normalizeStatus(tc.status);
       const testType = normalizeTestType(tc.test_type);
-      // Cột "Chức năng" của TỪNG DÒNG lấy theo bucket gốc (sourceModule,
-      // ví dụ "Đăng nhập thành công" / "Đăng nhập không thành công") —
-      // KHÔNG dùng moduleName (tên đã gộp nhóm, không hậu tố) nữa, để mỗi
-      // dòng hiển thị đúng chức năng gốc mà nó thuộc về. moduleName chỉ
-      // còn dùng làm fallback nếu sourceModule rỗng.
-      const displayFeature = sourceModule || moduleName || getDisplayFeatureName(tc, sourceModule);
+      // Cột "Chức năng" PHẢI ưu tiên hiển thị đúng giá trị chi tiết đã lưu
+      // trong chính testcase (tc.module / tc['chức năng'] / tc.feature),
+      // ví dụ "Đăng nhập thành công" / "Đăng nhập không thành công" —
+      // KHÔNG dùng "base" (tên đã gộp nhóm, bị cắt hậu tố) để hiển thị.
+      // sourceModule/moduleName chỉ còn là fallback cuối cùng, phòng khi
+      // testcase legacy hoàn toàn không có 3 trường trên.
+      const moduleNameForDisplay =
+        tc.module ||
+        tc['chức năng'] ||
+        tc.feature ||
+        sourceModule ||
+        moduleName ||
+        'Chưa xác định';
+      const displayFeature = moduleNameForDisplay;
       return `
         <tr data-idx="${sourceIndex}" data-mod="${escAttr(sourceModule)}">
           <td style="text-align:center">${i + 1}</td>
@@ -1290,10 +1279,6 @@
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Lưu thất bại');
         if (activeSnapshotId != null) tcSnapshots.set(Number(activeSnapshotId), currentTCData);
-
-        // Backend đã tự động tạo 1 file Excel MỚI (filename + download_url
-        // riêng theo timestamp) ngay sau khi lưu — hiển thị đúng thông báo
-        // và nút tải trỏ về file MỚI này, không dùng lại link Excel cũ.
         toast(data.message || 'Đã lưu thay đổi và tạo file Excel mới', 'success');
         if (data.download_url) {
           appendDownloadMsg(data.filename, data.download_url);
@@ -1998,9 +1983,7 @@
       d.appendChild(document.createTextNode(String(str)));
       return d.innerHTML;
     }
-   
-    // Escape an toàn để nhúng vào giá trị attribute HTML (esc() không escape
-    // dấu nháy nên không đủ an toàn khi dùng trong data-mod="...").
+  
     function escAttr(str) {
       return esc(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
