@@ -68,33 +68,33 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 flowchart LR
 
     %% ===== INPUT =====
-    A["👤 Người dùng"] --> B["🌐 Giao diện Web"]
+    A[" Người dùng"] --> B[" Giao diện Web"]
 
     %% ===== BACKEND =====
-    B -->|REST API| C["⚙️ Flask Backend"]
+    B -->|REST API| C[" Flask Backend"]
 
-    C --> D["🔄 Workflow Service"]
-    C --> E["📄 FileReader Service"]
-    C --> F["🕘 History Service"]
+    C --> D[" Workflow Service"]
+    C --> E[" FileReader Service"]
+    C --> F[" History Service"]
 
     %% ===== AI PROCESSING =====
-    D --> G["👁️ Vision AI"]
-    D --> H["📚 RAG Knowledge"]
-    D --> I["🤖 GPT-4o"]
+    D --> G[" Vision AI"]
+    D --> H[" RAG Knowledge"]
+    D --> I[" GPT-4o"]
 
-    G --> J["⚖️ Rule Engine"]
+    G --> J["Rule Engine"]
     H --> J
     I --> J
 
-    J --> K["🧩 Scenario Engine"]
+    J --> K[" Scenario Engine"]
 
     %% ===== OUTPUT =====
-    K --> L["✅ Coverage Checker"]
-    K --> M["📊 Excel Service"]
+    K --> L[" Coverage Checker"]
+    K --> M[" Excel Service"]
 
     %% ===== STORAGE =====
-    F --> N[("🗄️ SQLite Database")]
-    M --> O[("📁 Excel Output")]
+    F --> N[(" SQLite Database")]
+    M --> O[(" Excel Output")]
 
     %% ===== RETURN =====
     N -->|Lịch sử| B
