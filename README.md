@@ -9,8 +9,6 @@
 Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (Retrieval-Augmented Generation)**, và **Vision AI** nhằm nâng cao tính chính xác, tính đồng nhất và độ bao phủ kiểm thử (Test Coverage) trước khi xuất kết quả thành file Excel báo cáo hoàn chỉnh.
 
 ---
-
-<<<<<<< HEAD
  Tính năng chính
 - Sinh Test Case từ mô tả nghiệp vụ (Text Prompt)
 - Phân tích các đoạn mô tả tự do, tự động bóc tách các chức năng chính/phụ và sinh kịch bản kiểm thử tương ứng.
@@ -64,7 +62,7 @@ Hệ thống kết hợp **LLM (OpenAI GPT-4o)** với **Rule Engine**, **RAG (R
 ## Kiến trúc hệ thống
 
 ```mermaid
-<<<<<<< HEAD
+ HEAD
 flowchart LR
 
     %% ===== INPUT =====
@@ -112,7 +110,6 @@ flowchart LR
     class G,H,I,J,K ai;
     class L,M output;
     class N,O storage;
-=======
 graph TD
     A[Người dùng / Frontend Web] -->|HTTP / REST API| B[Flask Backend Server]
     
@@ -136,7 +133,7 @@ graph TD
 
     K -->|File .xlsx| A
     E -->|Lưu vết / Xem lại| A
->>>>>>> 83453b0 (Update project)
+ 83453b0 (Update project)
 ```
 ---
 ## Quy trình xử lý dữ liệu
@@ -194,27 +191,24 @@ deadlineAITaoTestCaseWebsite/
 ---
 
 ## Hướng dẫn cài đặt & Khởi chạy
-<<<<<<< HEAD
+ HEAD
 1. Yêu cầu tiền đề (Prerequisites)
 - Python **3.10** hoặc cao hơn.
 - Tài khoản OpenAI và **API Key** khả dụng.
 
 2. Cài đặt môi trường
-=======
 ### 1. Yêu cầu tiền đề (Prerequisites)
 - Python **3.10** hoặc cao hơn.
 - Tài khoản OpenAI và **API Key** khả dụng.
 
 ### 2. Cài đặt môi trường
->>>>>>> 83453b0 (Update project)
+83453b0 (Update project)
 ```bash
 # 1. Clone repository (nếu chưa có)
 git clone <repository-url>
 cd deadlineAITaoTestCaseWebsite
-
 # 2. Tạo môi trường ảo (Virtual Environment)
 python -m venv .venv
-
 # 3. Kích hoạt môi trường ảo
 # Trên Windows:
 .venv\Scripts\activate
@@ -223,11 +217,10 @@ source .venv/bin/activate
 # 4. Cài đặt các thư viện cần thiết
 pip install -r requirements.txt
 ```
-<<<<<<< HEAD
+ HEAD
 3. Cấu hình biến môi trường (.env)
-=======
 ### 3. Cấu hình biến môi trường (.env)
->>>>>>> 83453b0 (Update project)
+83453b0 (Update project)
 Tạo file `.env` tại thư mục gốc của dự án (hoặc sao chép từ `.env.example`):
 ```bash
 cp .env.example .env
@@ -238,24 +231,21 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 OPENAI_MODEL=gpt-4o-mini
 SECRET_KEY=your-custom-secret-key
 ```
-
-<<<<<<< HEAD
+ HEAD
 4. Khởi chạy ứng dụng
 =======
 ### 4. Khởi chạy ứng dụng
->>>>>>> 83453b0 (Update project)
+ 83453b0 (Update project)
 ```bash
 python app.py
 ```
 
 Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
 **`http://127.0.0.1:5000`**
-
-<<<<<<< HEAD
+HEAD
  Danh sách API Chính (REST Endpoints)
 | Endpoint | Method | Mô tả |
 =======
-
 ## Danh sách API Chính (REST Endpoints)
 | Endpoint | Method | Mô tả |
 | :--- | :--- | :--- |
@@ -272,7 +262,7 @@ Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
 | `/download/<filename>` | `GET` | Tải xuống file Excel từ thư mục output |
 ---
 
-<<<<<<< HEAD
+ HEAD
  Hướng dẫn sử dụng chi tiết
 1. Sinh Test Case bằng văn bản**:
    - Nhập mô tả chức năng vào ô chat (ví dụ: *"Tạo bộ test case cho chức năng Đăng ký tài khoản"*).
@@ -284,7 +274,7 @@ Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
    - Tải lên hình ảnh giao diện Web/App.
    - AI Vision sẽ quét và nhận diện các form, nút bấm, validation để sinh bộ test chuẩn.
 4. Chỉnh sửa & Xuất Báo cáo**:
-=======
+
 ## Hướng dẫn sử dụng chi tiết
 1. **Sinh Test Case bằng văn bản**:
    - Nhập mô tả chức năng vào ô chat (ví dụ: *"Tạo bộ test case cho chức năng Đăng ký tài khoản"*).
@@ -296,10 +286,9 @@ Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
    - Tải lên hình ảnh giao diện Web/App.
    - AI Vision sẽ quét và nhận diện các form, nút bấm, validation để sinh bộ test chuẩn.
 4. **Chỉnh sửa & Xuất Báo cáo**:
->>>>>>> 83453b0 (Update project)
+ 83453b0 (Update project)
    - Nhấp trực tiếp vào ô nội dung bất kỳ trong bảng preview để chỉnh sửa.
    - Nhấn nút **Xuất Excel** để tải về file Excel chuyên nghiệp.
-
 ---
 ## Giấy phép (License) & Tác giả
 - Dự án được phát triển phục vụ mục đích nghiên cứu, học tập và hỗ trợ cộng đồng Tester/QA.
