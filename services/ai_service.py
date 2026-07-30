@@ -1702,6 +1702,7 @@ class AIService:
                 for tc in tcs:
                     if not isinstance(tc, dict):
                         continue
+                    tc.setdefault('module', module_name)
                     tc.setdefault('chức năng', module_name)
                     tc.setdefault('feature', module_name)
                 if module_name not in grouped:
@@ -1730,6 +1731,7 @@ class AIService:
                         )
                         tc['scenario'] = tc_scenario
                         tc['description'] = tc_scenario
+                tc['module'] = final_name
                 tc['chức năng'] = final_name
                 tc['feature'] = final_name
                 if final_name not in grouped:

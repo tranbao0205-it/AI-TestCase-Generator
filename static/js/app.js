@@ -755,43 +755,76 @@
       return { base: trimmed, group: 'other' };
     }
 
+    // Trả về tên chức năng gốc, bỏ hậu tố "thành công"/"không thành công",
+    // dùng LÀM KEY GỘP NHÓM trong Preview. KHÔNG dùng để ghi đè dữ liệu
+    // testcase (tc.module/tc.feature/tc['chức năng'] không bao giờ được
+    // gán bằng giá trị này).
+    function getBaseModuleName(name) {
+      return String(name || "")
+        .replace(/\s+không\s+thành\s+công$/i, "")
+        .replace(/\s+thành\s+công$/i, "")
+        .trim();
+    }
+
     function buildDisplayGroups(modules) {
+      // Các testcase cùng chức năng gốc (vd "Xóa thành công" / "Xóa không
+      // thành công") phải nằm CHUNG một nhóm (card) trong Preview — nhóm
+      // theo getBaseModuleName(fullName). fullName (tên đầy đủ, giữ
+      // nguyên hậu tố) vẫn được dùng khi hiển thị cột "Chức năng" của
+      // từng dòng (xem renderTcRow) — groupName chỉ dùng làm key gộp,
+      // KHÔNG được gán ngược lại vào tc.module/tc.feature/tc['chức năng'].
       const order = [];
       const groupMap = new Map();
+
+      const syncModuleFields = (tc, fallbackModule = '') => {
+        if (!tc || typeof tc !== 'object') return tc;
+        // Không ghi đè tc.module/tc.feature/tc['chức năng'] nếu đã có sẵn
+        // giá trị — chỉ điền vào khi thiếu, và luôn ưu tiên chính giá trị
+        // hiện có của tc trước fallbackModule (tên module đầy đủ, nguyên
+        // vẹn hậu tố).
+        const detailedModule =
+          String(tc.module || tc['chức năng'] || tc.feature || fallbackModule).trim();
+        if (!tc.module) tc.module = detailedModule;
+        if (!tc['chức năng']) tc['chức năng'] = detailedModule;
+        if (!tc.feature) tc.feature = detailedModule;
+        return tc;
+      };
+
       for (const [modName, tcs] of Object.entries(modules)) {
         if (!Array.isArray(tcs)) continue;
-        const { base, group } = splitModuleOutcome(modName);
-        if (!groupMap.has(base)) {
-          groupMap.set(base, { success: null, failure: null, others: [] });
-          order.push(base);
-        }
-        const g = groupMap.get(base);
-        if (group === 'success' && !g.success) g.success = { modName, tcs };
-        else if (group === 'failure' && !g.failure) g.failure = { modName, tcs };
-        else g.others.push({ modName, tcs });
+        tcs.forEach((rawTc, idx) => {
+          const tc = syncModuleFields(rawTc, modName);
+          const fullName =
+            tc.module ||
+            tc['chức năng'] ||
+            tc.feature ||
+            tc.title ||
+            modName ||
+            'Chưa xác định';
+          const groupName = getBaseModuleName(fullName) || fullName;
+
+          if (!groupMap.has(groupName)) {
+            groupMap.set(groupName, []);
+            order.push(groupName);
+          }
+          groupMap.get(groupName).push({
+            tc,
+            sourceModule: modName,
+            sourceIndex: idx,
+          });
+        });
       }
 
-      return order.map(base => {
-        const g = groupMap.get(base);
-        const rows = [];
-        const syncModuleFields = (tc, fallbackModule = '') => {
-          if (!tc || typeof tc !== 'object') return tc;
-          const detailedModule =
-            String(tc.module || tc['chức năng'] || tc.feature || fallbackModule).trim();
-          if (!tc.module) tc.module = detailedModule;
-          if (!tc['chức năng']) tc['chức năng'] = detailedModule;
-          if (!tc.feature) tc.feature = detailedModule;
-          return tc;
+      return order.map(groupName => {
+        const rows = groupMap.get(groupName);
+        return {
+          displayName: groupName,
+          rows,
+          // Nút "Thêm testcase" của cả nhóm cần một module key thật sự
+          // tồn tại trong currentTCData.modules để openTestCaseModal hoạt
+          // động đúng — dùng sourceModule của dòng đầu tiên trong nhóm.
+          defaultAddModule: rows[0]?.sourceModule ?? groupName,
         };
-        if (g.success) g.success.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc, g.success.modName), sourceModule: g.success.modName, sourceIndex: idx }));
-        if (g.failure) g.failure.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc, g.failure.modName), sourceModule: g.failure.modName, sourceIndex: idx }));
-        g.others.forEach(o => o.tcs.forEach((tc, idx) => rows.push({ tc: syncModuleFields(tc, o.modName), sourceModule: o.modName, sourceIndex: idx })));
-        const defaultAddModule =
-          (g.success && g.success.modName) ||
-          (g.failure && g.failure.modName) ||
-          (g.others[0] && g.others[0].modName) ||
-          base;
-        return { displayName: base, rows, defaultAddModule };
       });
     }
     function showPreview(snapshotId = activeSnapshotId) {
@@ -913,6 +946,10 @@
       return map[normalizeTestType(v)] || 'tt-chuc-nang';
     }
 
+    // Lưu ý: hàm này hiện KHÔNG được gọi ở bất kỳ đâu trong file (đã kiểm
+    // tra bằng grep toàn bộ app.js). Giữ lại cho tương thích ngược nhưng
+    // KHÔNG cắt hậu tố "thành công"/"không thành công" nữa — phải trả về
+    // nguyên tên chức năng đầy đủ như dữ liệu đầu vào.
     function getDisplayFeatureName(tc, sourceModule) {
       const rawName =
         tc.feature ||
@@ -922,10 +959,7 @@
         tc['chức năng'] ||
         sourceModule ||
         '';
-      return String(rawName)
-        .replace(/\s+không\s+thành\s+công\s*$/i, '')
-        .replace(/\s+thành\s+công\s*$/i, '')
-        .trim() || 'Chưa xác định';
+      return String(rawName).trim() || 'Chưa xác định';
     }
 
     function renderTcRow(tc, i, sourceModule, sourceIndex, moduleName) {
